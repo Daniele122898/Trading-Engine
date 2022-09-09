@@ -31,5 +31,6 @@ namespace TradingEngine::Data {
         // Assume if the order exists in m_orders, it is in a level
         auto lvl = m_levels[order->Price];
         lvl->RemoveOrder(order);
+        m_orders.erase(Id);
     }
 } // Data

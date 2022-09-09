@@ -14,6 +14,8 @@ namespace TradingEngine::Data {
 
     class OrderBook {
     public:
+        explicit OrderBook(Symbol symbol): m_symbol{symbol} {}
+
         [[nodiscard]]
         const Symbol& Symbol() const { return m_symbol; }
         [[nodiscard]]
@@ -31,11 +33,11 @@ namespace TradingEngine::Data {
     private:
         struct Symbol m_symbol;
 
-        std::set<Level*, std::greater<>> m_bids;
-        std::set<Level*, std::less<>> m_asks;
+        std::set<Level*, std::greater<>> m_bids{};
+        std::set<Level*, std::less<>> m_asks{};
         // Memory is cheap, keep both data structures as they're good for their individual tasks
-        std::unordered_map<int64_t, Level*> m_levels;
-        std::unordered_map<uint64_t , Order*> m_orders;
+        std::unordered_map<int64_t, Level*> m_levels{};
+        std::unordered_map<uint64_t , Order*> m_orders{};
     };
 
 } // Data
