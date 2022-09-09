@@ -19,9 +19,9 @@ namespace TradingEngine::Data {
         [[nodiscard]]
         const Symbol& Symbol() const { return m_symbol; }
         [[nodiscard]]
-        Level* BestBid() const { return *m_bids.begin(); }
+        Level* BestBid() const;
         [[nodiscard]]
-        Level* BestAsk() const { return *m_asks.begin(); }
+        Level* BestAsk() const;
         [[nodiscard]]
         auto Bids() const { return m_bids; }
         [[nodiscard]]

@@ -33,4 +33,14 @@ namespace TradingEngine::Data {
         lvl->RemoveOrder(order);
         m_orders.erase(Id);
     }
+
+    Level *OrderBook::BestBid() const {
+        auto first = m_bids.begin();
+        return first == m_bids.end() ? nullptr : *first;
+    }
+
+    Level *OrderBook::BestAsk() const {
+        auto first = m_asks.begin();
+        return first == m_asks.end() ? nullptr : *first;
+    }
 } // Data
