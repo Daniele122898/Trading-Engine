@@ -4,7 +4,32 @@
 
 #include "order_book.h"
 
-namespace TradingEngine {
-    namespace Data {
-    } // TradingEngine
+namespace TradingEngine::Data {
+    void OrderBook::AddOrder(Order* order) {
+        Level* level;
+        if (auto lvl = m_levels.find(order->Price); lvl != m_levels.end()) {
+            level = lvl->second;
+            level->AddOrder(order);
+        } else {
+            level = new Level(order->Price, order);
+            // Add to data
+            m_levels[order->Price] = level;
+            if (order->Side == OrderSide::BUY)
+                m_bids.insert(level);
+            else
+                m_asks.insert(level);
+        }
+        m_orders[order->Id] = order;
+    }
+
+    void OrderBook::RemoveOrder(uint64_t Id) {
+        auto orderIt = m_orders.find(Id);
+        if (orderIt == m_orders.end())
+            return; //TODO: Potentially throw error
+
+        auto order = orderIt->second;
+        // Assume if the order exists in m_orders, it is in a level
+        auto lvl = m_levels[order->Price];
+        lvl->RemoveOrder(order);
+    }
 } // Data

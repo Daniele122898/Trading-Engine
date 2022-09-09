@@ -14,13 +14,23 @@ namespace TradingEngine::Data {
         OrderNode *Prev;
         OrderNode *Next;
 
-        OrderNode() = default;
+        OrderNode() = delete;
 
         explicit OrderNode(struct Order *order) :
                 Order{order}, Prev{nullptr}, Next{nullptr} {}
 
         OrderNode(struct Order *order, struct OrderNode *prev, struct OrderNode *next) :
                 Order{order}, Prev{prev}, Next{next} {}
+
+        ~OrderNode() {
+            delete Order;
+            Order = nullptr;
+        }
+
+        OrderNode(const OrderNode& node) = delete;
+        OrderNode(OrderNode&& node) = delete;
+        OrderNode operator=(const OrderNode& node) = delete;
+        OrderNode operator=(OrderNode&& node) = delete;
     };
 }
 
