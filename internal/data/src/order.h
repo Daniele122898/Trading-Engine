@@ -9,7 +9,13 @@
 
 namespace TradingEngine::Data {
     enum class OrderType {
-        MARKET
+        MARKET,
+        LIMIT,
+        FOK,
+        IOC,
+        STOP_MARKET,
+        STOP_LIMIT,
+        QUOTE,
     };
 
     enum class OrderSide {
@@ -18,8 +24,6 @@ namespace TradingEngine::Data {
     };
 
     enum class OrderLifetime {
-        FOK,
-        IOC,
         GFD,
         GTD,
         GTC

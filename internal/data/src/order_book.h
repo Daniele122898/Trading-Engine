@@ -7,6 +7,7 @@
 
 #include <set>
 #include <unordered_map>
+#include <optional>
 #include "symbol.h"
 #include "level.h"
 
@@ -23,20 +24,21 @@ namespace TradingEngine::Data {
         [[nodiscard]]
         Level* BestAsk() const;
         [[nodiscard]]
-        auto Bids() const { return m_bids; }
+        auto& Bids() const { return m_bids; }
         [[nodiscard]]
-        auto Asks() const { return m_asks; }
+        auto& Asks() const { return m_asks; }
 
-        void AddOrder(Order* order);
+        void AddOrder(Order &order);
         void RemoveOrder(uint64_t Id);
 
     private:
+        [[nodiscard]]
+        Level& findLevelOrAdd(Order &order);
+
         struct Symbol m_symbol;
 
-        std::set<Level*, std::greater<>> m_bids{};
-        std::set<Level*, std::less<>> m_asks{};
-        // Memory is cheap, keep both data structures as they're good for their individual tasks
-        std::unordered_map<int64_t, Level*> m_levels{};
+        std::set<Level, std::greater<>> m_bids{};
+        std::set<Level, std::less<>> m_asks{};
         std::unordered_map<uint64_t , Order*> m_orders{};
     };
 

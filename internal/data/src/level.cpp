@@ -5,8 +5,8 @@
 #include "level.h"
 
 namespace TradingEngine::Data {
-    Level::Level(int64_t price, Order *head)  :
-            Price{price}, Orders{1}, TotalVolume{head->CurrentQuantity} {
+    Level::Level(int64_t price, Order &head)  :
+            Price{price}, Orders{1}, TotalVolume{head.CurrentQuantity} {
 
         auto orderNode = new OrderNode(head);
         AddOrder(orderNode);
@@ -17,7 +17,7 @@ namespace TradingEngine::Data {
             return LevelSide::UNKNOWN;
         }
 
-        return Head->Order->Side == OrderSide::BUY ? LevelSide::BID : LevelSide::ASK;
+        return Head->Order.Side == OrderSide::BUY ? LevelSide::BID : LevelSide::ASK;
     }
 
     void Level::AddOrder(OrderNode *order) {
@@ -31,9 +31,9 @@ namespace TradingEngine::Data {
         }
 
         ++Orders;
-        TotalVolume += order->Order->CurrentQuantity;
+        TotalVolume += order->Order.CurrentQuantity;
 
-        m_orderMappings[order->Order] = order;
+        m_orderMappings[order->Order.Id] = order;
     }
 
     void Level::RemoveOrder(OrderNode *order) {
@@ -41,19 +41,19 @@ namespace TradingEngine::Data {
         order->Next->Prev = order->Prev;
 
         --Orders;
-        TotalVolume -= order->Order->CurrentQuantity;
+        TotalVolume -= order->Order.CurrentQuantity;
 
-        m_orderMappings.erase(order->Order);
+        m_orderMappings.erase(order->Order.Id);
         delete order;
     }
 
-    void Level::AddOrder(Order *order) {
+    void Level::AddOrder(Order &order) {
         auto node = new OrderNode(order);
         AddOrder(node);
     }
 
-    void Level::RemoveOrder(Order *order) {
-        auto orderNode = m_orderMappings[order];
+    void Level::RemoveOrder(Order &order) {
+        auto orderNode = m_orderMappings[order.Id];
         RemoveOrder(orderNode);
     }
 } // Data

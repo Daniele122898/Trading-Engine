@@ -26,14 +26,14 @@ namespace TradingEngine::Data {
         uint32_t Orders;
         uint64_t TotalVolume;
 
-        Level() = delete;
+        explicit Level(int64_t price) : Price{price}, Orders{0}, TotalVolume{0} {}
 
         Level(int64_t price, OrderNode *head) :
-                Price{price}, Orders{1}, TotalVolume{head->Order->CurrentQuantity} {
+                Price{price}, Orders{1}, TotalVolume{head->Order.CurrentQuantity} {
             AddOrder(head);
         }
 
-        Level(int64_t price, Order *head);
+        Level(int64_t price, Order &head);
 
         ~Level(){
             if (Head != nullptr) {
@@ -55,33 +55,21 @@ namespace TradingEngine::Data {
         inline void DecreaseVolume(uint64_t amount) { TotalVolume -= amount; }
 
         void AddOrder(OrderNode *order);
-        void AddOrder(Order *order);
+        void AddOrder(Order &order);
         void RemoveOrder(OrderNode *order);
-        void RemoveOrder(Order *order);
+        void RemoveOrder(Order &order);
 
-        bool operator<(const Level& rhs) const {
-            return Price < rhs.Price;
-        }
-        bool operator>(const Level& rhs) const {
-            return Price > rhs.Price;
-        }
-        bool operator>=(const Level& rhs) const {
-            return Price >= rhs.Price;
-        }
-        bool operator<=(const Level& rhs) const {
-            return Price <= rhs.Price;
-        }
-        bool operator==(const Level& rhs) const {
-            return Price == rhs.Price;
+        auto operator<=>(const Level& rhs) const {
+            return Price <=> rhs.Price;
         }
 
-        Level(const Level& node) = delete;
-        Level(Level&& node) = delete;
-        Level operator=(const Level& node) = delete;
-        Level operator=(Level&& node) = delete;
+//        Level(const Level& node) = delete;
+//        Level(Level&& node) = delete;
+//        Level operator=(const Level& node) = delete;
+//        Level operator=(Level&& node) = delete;
 
     private:
-        std::unordered_map<Order*,OrderNode*> m_orderMappings;
+        std::unordered_map<uint64_t, OrderNode*> m_orderMappings;
     };
 
 } // Data
