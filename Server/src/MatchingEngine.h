@@ -19,6 +19,7 @@ namespace TradingEngine::Server {
     private:
         bool Match(Data::Order& order, Data::OrderBook& book);
         bool MatchMarket(Data::Order& order, Data::OrderBook& book);
+        bool MatchIOC(Data::Order& order, Data::OrderBook& book);
 
         std::vector<Data::Symbol> m_symbols;
         std::unordered_map<uint32_t, Data::Symbol&> m_symbolsMap;
