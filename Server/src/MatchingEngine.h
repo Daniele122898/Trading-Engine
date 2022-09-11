@@ -21,11 +21,11 @@ namespace TradingEngine::Server {
         bool MatchMarket(Data::Order& order, Data::OrderBook& book);
         bool MatchIOC(Data::Order& order, Data::OrderBook& book);
 
-        std::vector<Data::Symbol> m_symbols;
-        std::unordered_map<uint32_t, Data::Symbol&> m_symbolsMap;
+        std::vector<Data::Symbol> m_symbols{};
+        std::unordered_map<uint32_t, Data::Symbol&> m_symbolsMap{};
 
-        std::unordered_map<uint32_t, Data::OrderBook> m_orderBooks;
-        std::unordered_map<uint64_t, Data::Order> m_orders;
+        std::unordered_map<uint32_t, Data::OrderBook> m_orderBooks{};
+        std::unordered_map<uint64_t, Data::Order> m_orders{};
     };
 
 } // Server

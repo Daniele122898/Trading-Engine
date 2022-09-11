@@ -37,8 +37,10 @@ namespace TradingEngine::Data {
     }
 
     void Level::RemoveOrder(OrderNode *order) {
-        order->Prev->Next = order->Next;
-        order->Next->Prev = order->Prev;
+        if (order->Prev != nullptr)
+            order->Prev->Next = order->Next;
+        if (order->Next != nullptr)
+            order->Next->Prev = order->Prev;
 
         --Orders;
         TotalVolume -= order->Order.CurrentQuantity;
