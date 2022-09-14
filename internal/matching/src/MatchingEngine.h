@@ -5,16 +5,17 @@
 #ifndef TRADINGENGINE_MATCHINGENGINE_H
 #define TRADINGENGINE_MATCHINGENGINE_H
 
-#include <symbol.h>
+#include "symbol.h"
 #include <vector>
 #include <unordered_map>
 #include "order_book.h"
 
-namespace TradingEngine::Server {
+namespace TradingEngine::Matching {
 
     class MatchingEngine {
     public:
-        void AddOrder(Data::Order&& order);
+        void AddOrder(Data::Order &order);
+        void AddSymbol(const Data::Symbol &symbol);
 
     private:
         bool Match(Data::Order& order, Data::OrderBook& book);
@@ -25,8 +26,7 @@ namespace TradingEngine::Server {
         std::greater<int64_t> m_greater{};
         std::less<int64_t> m_less{};
 
-        std::vector<Data::Symbol> m_symbols{};
-        std::unordered_map<uint32_t, Data::Symbol&> m_symbolsMap{};
+        std::unordered_map<uint32_t, Data::Symbol> m_symbols{};
 
         std::unordered_map<uint32_t, Data::OrderBook> m_orderBooks{};
         std::unordered_map<uint64_t, Data::Order> m_orders{};

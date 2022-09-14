@@ -3,12 +3,12 @@
 //
 
 #include "MatchingEngine.h"
-#include <not_implemented_exception.h>
-#include <log.h>
+#include "not_implemented_exception.h"
+#include "log.h"
 
-namespace TradingEngine::Server {
+namespace TradingEngine::Matching {
     // TODO: Add proper errors
-    void MatchingEngine::AddOrder(Data::Order &&order) {
+    void MatchingEngine::AddOrder(Data::Order &order) {
         CORE_TRACE("Received Order: {}", order);
         auto obIt = m_orderBooks.find(order.SymbolId);
         if (obIt == m_orderBooks.end()) {
@@ -101,5 +101,9 @@ namespace TradingEngine::Server {
             CORE_TRACE("Order with id {} could not be filled fully", order.Id);
         }
         return true;
+    }
+
+    void MatchingEngine::AddSymbol(const Data::Symbol &symbol) {
+        m_symbols[symbol.Id] = symbol;
     }
 } // Server

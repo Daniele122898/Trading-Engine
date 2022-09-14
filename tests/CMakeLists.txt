@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.16.3)
-project(Server)
+project(tests)
 
 set(CMAKE_CXX_STANDARD 20)
 
+enable_testing()
+
 # Get recursively all .cpp and .hpp files in src subdir
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "./*.cpp" "./*.h")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
@@ -16,7 +18,8 @@ endif()
 
 target_link_libraries(${PROJECT_NAME}
         PUBLIC
-            data
-            util
-            matching
-)
+        data
+        util
+        gtest
+        matching
+        )

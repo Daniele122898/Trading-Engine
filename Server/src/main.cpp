@@ -1,12 +1,12 @@
 #include <log.h>
-#include "MatchingEngine.h"
+#include <MatchingEngine.h>
 
 using namespace TradingEngine;
 
 int main() {
     Util::log::Init("Matching Engine");
 
-    Server::MatchingEngine engine;
+    Matching::MatchingEngine engine;
     Data::Order order(1,
                       1,
                       TradingEngine::Data::OrderType::MARKET,

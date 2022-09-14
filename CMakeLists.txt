@@ -4,8 +4,11 @@ project(TradingEngine)
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(external/spdlog)
+add_subdirectory(external/gtest)
 
 add_subdirectory(internal/data)
 add_subdirectory(internal/util)
+add_subdirectory(internal/matching)
 
 add_subdirectory(Server)
+add_subdirectory(tests)
