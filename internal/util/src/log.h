@@ -12,7 +12,7 @@ namespace TradingEngine::Util {
 
     class log {
     public:
-        static void Init(const std::string& assemblyName, spdlog::level::level_enum level, spdlog::level::level_enum flushLevel);
+        static void Init(const std::string& assemblyName, spdlog::level::level_enum level = spdlog::level::trace, spdlog::level::level_enum flushLevel = spdlog::level::trace);
 
         static spdlog::logger* GetLogger() { return s_CoreLogger; }
 

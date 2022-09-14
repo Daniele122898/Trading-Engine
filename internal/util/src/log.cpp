@@ -8,7 +8,7 @@
 namespace TradingEngine::Util {
     spdlog::logger* log::s_CoreLogger;
 
-    void log::Init(const std::string& assemblyName, spdlog::level::level_enum level = spdlog::level::trace, spdlog::level::level_enum flushLevel = spdlog::level::trace) {
+    void log::Init(const std::string& assemblyName, spdlog::level::level_enum level, spdlog::level::level_enum flushLevel) {
         auto colorSink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
         colorSink->set_pattern("%^[%T] [%n] :: %v%$");
         s_CoreLogger = new spdlog::logger(assemblyName, colorSink);

@@ -35,8 +35,11 @@ namespace TradingEngine::Server {
                 throw Util::not_implemented_exception();
                 break;
             case Data::OrderType::IOC:
-                return MatchIOC(order, book);
-                break;
+                if (order.Side == Data::OrderSide::BUY) {
+                    return MatchIOC(order, book.Bids(), m_greater);
+                } else {
+                    return MatchIOC(order, book.Asks(), m_less);
+                }
             case Data::OrderType::STOP_MARKET:
                 throw Util::not_implemented_exception();
                 break;
@@ -54,26 +57,30 @@ namespace TradingEngine::Server {
         // For now, we'll pretend a Market Order is basically an IOC with infinite price
         if (order.Side == Data::OrderSide::BUY) {
             order.Price = INT64_MAX;
-            return MatchIOC(order, book);
+            return MatchIOC(order, book.Bids(), m_greater);
         } else {
             // let's not use a negative value here. We dont want the seller to have to pay
             // TODO: check correctness of this. Might be broken
             order.Price = 0;
-            return MatchIOC(order, book);
+            return MatchIOC(order, book.Asks(), m_less);
         }
     }
 
-    // Left off: maybe template this so we have the set given as well as the comparator for > or < of price
-    bool MatchingEngine::MatchIOC(Data::Order &order, Data::OrderBook &book) {
-        auto itBegin = order.Side == Data::OrderSide::BUY ? book.Asks().begin() : book.Bids().begin();
-        auto itEnd = order.Side == Data::OrderSide::BUY ? book.Asks().end() : book.Bids().end();
-        for (auto lvl = itBegin; lvl != itEnd; ++lvl) {
-            auto& level = const_cast<Data::Level&>(*lvl);
-            if (level.Price > )
+    template<typename S, typename Comp>
+    bool MatchingEngine::MatchIOC(Data::Order &order, S &levels, Comp& compare) {
+        for (auto& lvl: levels) {
+            auto& level = const_cast<Data::Level&>(lvl);
+            if (compare(level.Price, order.Price)) {
+                CORE_TRACE("IOC limit {} {} next lvl price {}, aborting FILLING",
+                           order.Price,
+                           (order.Side == Data::OrderSide::BUY ? "above" : "below"),
+                           level.Price);
+                break;
+            }
             Data::OrderNode* curr = level.Head;
             while (curr != nullptr) {
                 Data::Order& o = curr->Order;
-                int64_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
+                uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
                 order.CurrentQuantity -= diff;
                 o.CurrentQuantity -= diff;
 
