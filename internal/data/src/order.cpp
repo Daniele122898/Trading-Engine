@@ -10,4 +10,59 @@ namespace TradingEngine::Data {
                  int64_t price, uint32_t initialQuantity) :
                  Id{id}, SymbolId{symbolId}, Type{type}, Side{side}, Lifetime{lifetime}, Price{price}, InitialQuantity{initialQuantity}, CurrentQuantity{initialQuantity} {
     }
+
+    std::ostream& operator<<(std::ostream& str, const OrderLifetime& lifetime) {
+        switch (lifetime) {
+            case OrderLifetime::GFD:
+                str << "GFD";
+                break;
+            case OrderLifetime::GTD:
+                str << "GTD";
+                break;
+            case OrderLifetime::GTC:
+                str << "GTC";
+                break;
+        }
+        return str;
+    }
+
+    std::ostream& operator<<(std::ostream& str, const OrderType& type) {
+        switch (type) {
+            case OrderType::MARKET:
+                str << "MARKET";
+                break;
+            case OrderType::LIMIT:
+                str << "LIMIT";
+                break;
+            case OrderType::FOK:
+                str << "FOK";
+                break;
+            case OrderType::IOC:
+                str << "IOC";
+                break;
+            case OrderType::STOP_MARKET:
+                str << "STOP_MARKET";
+                break;
+            case OrderType::STOP_LIMIT:
+                str << "STOP_LIMIT";
+                break;
+            case OrderType::QUOTE:
+                str << "QUOTE";
+                break;
+        }
+        return str;
+    }
+
+    std::ostream& operator<<(std::ostream& str, const Order& order) {
+        str << "Order ID: " << order.Id
+            << "\nSymbol ID: " << order.SymbolId
+            << "\nSide: " << (order.Side == OrderSide::BUY ? "BUY" : "SELL")
+            << "\nType: " << order.Type
+            << "\nLife Time: " << order.Lifetime
+            << "\nPrice: " << order.Price
+            << "\nInitial Q: " << order.InitialQuantity
+            << "\nCurrent Q: " << order.CurrentQuantity;
+
+        return str;
+    }
 } // Data

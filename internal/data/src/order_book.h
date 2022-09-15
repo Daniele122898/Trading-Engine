@@ -39,8 +39,10 @@ namespace TradingEngine::Data {
 
         std::set<Level, std::greater<>> m_bids{};
         std::set<Level, std::less<>> m_asks{};
-        std::unordered_map<uint64_t , Order*> m_orders{};
+        std::unordered_map<uint64_t , Order> m_orders{};
     };
+
+    std::ostream& operator<<(std::ostream& str, const OrderBook& book);
 
 } // Data
 

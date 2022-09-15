@@ -5,6 +5,7 @@
 #ifndef TRADINGENGINE_MATCHINGENGINETEST_H
 #define TRADINGENGINE_MATCHINGENGINETEST_H
 
+#include <log.h>
 #include <MatchingEngine.h>
 #include "gtest/gtest.h"
 
@@ -32,9 +33,10 @@ protected:
 
             m_engine.AddOrder(order);
         }
+
+        CORE_INFO(*m_engine.OrderBook(symbol.Id));
     }
 
-private:
     TradingEngine::Matching::MatchingEngine m_engine{};
 
 };

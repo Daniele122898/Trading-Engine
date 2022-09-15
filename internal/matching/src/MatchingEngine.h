@@ -15,13 +15,23 @@ namespace TradingEngine::Matching {
     class MatchingEngine {
     public:
         void AddOrder(Data::Order &order);
-        void AddSymbol(const Data::Symbol &symbol);
+
+        void AddSymbol(Data::Symbol const &symbol);
+
+        Data::OrderBook const * OrderBook(uint32_t id);
+
+        std::vector<Data::Symbol> Symbols();
+        Data::Symbol const * Symbol(uint32_t id);
 
     private:
-        bool Match(Data::Order& order, Data::OrderBook& book);
-        bool MatchMarket(Data::Order& order, Data::OrderBook& book);
+        bool Match(Data::Order &order, Data::OrderBook &book);
+
+        bool MatchMarket(Data::Order &order, Data::OrderBook &book);
+
+        bool MatchIOC(Data::Order &order, Data::OrderBook &book);
+
         template<typename S, typename Comp>
-        bool MatchIOC(Data::Order& order, S &levels, Comp& compare);
+        bool MatchIOC(Data::Order &order, S &levels, Comp &compare);
 
         std::greater<int64_t> m_greater{};
         std::less<int64_t> m_less{};

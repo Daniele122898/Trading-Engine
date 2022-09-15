@@ -3,13 +3,15 @@
 //
 
 #include "order_book.h"
+#include <string>
 
 namespace TradingEngine::Data {
     void OrderBook::AddOrder(Order &order) {
         auto &lvl = findLevelOrAdd(order);
-        lvl.AddOrder(order);
 
-        m_orders[order.Id] = &order;
+        m_orders[order.Id] = order;
+
+        lvl.AddOrder(m_orders[order.Id]);
     }
 
     void OrderBook::RemoveOrder(uint64_t Id) {
@@ -40,7 +42,7 @@ namespace TradingEngine::Data {
         return const_cast<Level *>(&(*first));
     }
 
-    // TODO: imrpove this entire function, it's bad (MVP)
+    // TODO: improve this entire function, it's bad (MVP)
     Level &OrderBook::findLevelOrAdd(Order &order) {
         // TODO: Improve this search!
         Level lvl(order.Price);
@@ -61,5 +63,45 @@ namespace TradingEngine::Data {
                 return const_cast<Level &>(*lvlIt);
             }
         }
+    }
+
+    std::ostream& operator<<(std::ostream& str, const OrderBook& book) {
+        int width = 30;
+        std::string sep = std::string(width, '-');
+
+        str << "\t\t" << book.Symbol().Ticker << '\n';
+        str << sep << '\n';
+
+        auto writeLine = [&] (std::string&& left, std::string&& mid, std::string&& right) {
+            int lineSpace = (width / 3) -2;
+            // left
+            std::string spacer = std::string(lineSpace - left.size(), ' ');
+            str << "| " << left << spacer;
+            // mid
+            spacer = std::string(lineSpace-mid.size(), ' ');
+            str << "| " << mid << spacer;
+            // right
+            spacer = std::string(lineSpace-right.size(), ' ');
+            str << "| " << right << spacer;
+            str << '\n';
+        };
+
+        writeLine("bid Vol", "price", "ask vol");
+        str << sep << '\n';
+        auto& asks = book.Asks();
+        for (auto ask= asks.rbegin(); ask != asks.rend(); ++ask) {
+            auto& askLvl = *ask;
+            writeLine(std::to_string(0), std::to_string(askLvl.Price), std::to_string(askLvl.TotalVolume));
+            str << sep << '\n';
+        }
+
+        auto& bids = book.Bids();
+        for (auto bid= bids.begin(); bid != bids.end(); ++bid) {
+            auto& bidLvl = *bid;
+            writeLine(std::to_string(bidLvl.TotalVolume), std::to_string(bidLvl.Price), std::to_string(0));
+            str << sep << '\n';
+        }
+
+        return str;
     }
 } // Data

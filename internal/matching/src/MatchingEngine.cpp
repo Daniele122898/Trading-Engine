@@ -22,24 +22,26 @@ namespace TradingEngine::Matching {
         if (Match(order, ob)) {
             return;
         }
+
+        // Order has not been fully filled, thus place it.
+        m_orders[order.Id] = order;
+        ob.AddOrder(m_orders.at(order.Id));
     }
 
     // TODO: Add fill book to keep track of all the trades that actually happened lol
-    bool MatchingEngine::Match(Data::Order &order, Data::OrderBook& book) {
+    bool MatchingEngine::Match(Data::Order &order, Data::OrderBook &book) {
         switch (order.Type) {
             case Data::OrderType::MARKET:
-                return MatchMarket(order, book);
+                MatchMarket(order, book);
+                return true;
             case Data::OrderType::LIMIT:
-                throw Util::not_implemented_exception();
+                return MatchIOC(order, book);
             case Data::OrderType::FOK:
                 throw Util::not_implemented_exception();
                 break;
             case Data::OrderType::IOC:
-                if (order.Side == Data::OrderSide::BUY) {
-                    return MatchIOC(order, book.Bids(), m_greater);
-                } else {
-                    return MatchIOC(order, book.Asks(), m_less);
-                }
+                MatchIOC(order, book);
+                return true;
             case Data::OrderType::STOP_MARKET:
                 throw Util::not_implemented_exception();
                 break;
@@ -66,10 +68,18 @@ namespace TradingEngine::Matching {
         }
     }
 
+    bool MatchingEngine::MatchIOC(Data::Order &order, Data::OrderBook &book) {
+        if (order.Side == Data::OrderSide::BUY) {
+            return MatchIOC(order, book.Bids(), m_greater);
+        } else {
+            return MatchIOC(order, book.Asks(), m_less);
+        }
+    }
+
     template<typename S, typename Comp>
-    bool MatchingEngine::MatchIOC(Data::Order &order, S &levels, Comp& compare) {
-        for (auto& lvl: levels) {
-            auto& level = const_cast<Data::Level&>(lvl);
+    bool MatchingEngine::MatchIOC(Data::Order &order, S &levels, Comp &compare) {
+        for (auto &lvl: levels) {
+            auto &level = const_cast<Data::Level &>(lvl);
             if (compare(level.Price, order.Price)) {
                 CORE_TRACE("IOC limit {} {} next lvl price {}, aborting FILLING",
                            order.Price,
@@ -77,14 +87,14 @@ namespace TradingEngine::Matching {
                            level.Price);
                 break;
             }
-            Data::OrderNode* curr = level.Head;
+            Data::OrderNode *curr = level.Head;
             while (curr != nullptr) {
-                Data::Order& o = curr->Order;
+                Data::Order &o = curr->Order;
                 uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
                 order.CurrentQuantity -= diff;
                 o.CurrentQuantity -= diff;
 
-                Data::OrderNode* next = curr->Next;
+                Data::OrderNode *next = curr->Next;
                 if (o.CurrentQuantity == 0) {
                     level.RemoveOrder(curr);
                 } else {
@@ -99,11 +109,46 @@ namespace TradingEngine::Matching {
 
         if (order.CurrentQuantity > 0) {
             CORE_TRACE("Order with id {} could not be filled fully", order.Id);
+            return false;
         }
         return true;
     }
 
-    void MatchingEngine::AddSymbol(const Data::Symbol &symbol) {
+    void MatchingEngine::AddSymbol(Data::Symbol const &symbol) {
+        // check if symbol already exists
+        if (m_symbols.contains(symbol.Id))
+            return;
+
         m_symbols[symbol.Id] = symbol;
+        // create orderbook
+        m_orderBooks.insert({symbol.Id, Data::OrderBook{symbol}});
     }
+
+    Data::OrderBook const *MatchingEngine::OrderBook(uint32_t id) {
+        auto res = m_orderBooks.find(id);
+        if (res == m_orderBooks.end()) {
+            return nullptr;
+        }
+
+        return &(res->second);
+    }
+
+    std::vector<Data::Symbol> MatchingEngine::Symbols() {
+        std::vector<Data::Symbol> symbols{m_symbols.size()};
+        int i = 0;
+        for (auto it = m_symbols.begin(); it != m_symbols.end(); ++it, ++i) {
+            symbols.at(i) = it->second;
+        }
+
+        return symbols;
+    }
+
+    Data::Symbol const * MatchingEngine::Symbol(uint32_t id) {
+        auto it = m_symbols.find(id);
+        if (it == m_symbols.end())
+            return nullptr;
+
+        return &(it->second);
+    }
+
 } // Server

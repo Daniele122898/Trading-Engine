@@ -60,60 +60,9 @@ namespace TradingEngine::Data {
 
     };
 
-    inline std::ostream& operator<<(std::ostream& str, const OrderLifetime& lifetime) {
-        switch (lifetime) {
-            case OrderLifetime::GFD:
-                str << "GFD";
-                break;
-            case OrderLifetime::GTD:
-                str << "GTD";
-                break;
-            case OrderLifetime::GTC:
-                str << "GTC";
-                break;
-        }
-        return str;
-    }
-
-    inline std::ostream& operator<<(std::ostream& str, const OrderType& type) {
-        switch (type) {
-            case OrderType::MARKET:
-                str << "MARKET";
-                break;
-            case OrderType::LIMIT:
-                str << "LIMIT";
-                break;
-            case OrderType::FOK:
-                str << "FOK";
-                break;
-            case OrderType::IOC:
-                str << "IOC";
-                break;
-            case OrderType::STOP_MARKET:
-                str << "STOP_MARKET";
-                break;
-            case OrderType::STOP_LIMIT:
-                str << "STOP_LIMIT";
-                break;
-            case OrderType::QUOTE:
-                str << "QUOTE";
-                break;
-        }
-        return str;
-    }
-
-    inline std::ostream& operator<<(std::ostream& str, const Order& order) {
-        str << "Order ID: " << order.Id
-        << "\nSymbol ID: " << order.SymbolId
-        << "\nSide: " << (order.Side == OrderSide::BUY ? "BUY" : "SELL")
-        << "\nType: " << order.Type
-        << "\nLife Time: " << order.Lifetime
-        << "\nPrice: " << order.Price
-        << "\nInitial Q: " << order.InitialQuantity
-        << "\nCurrent Q: " << order.CurrentQuantity;
-
-        return str;
-    }
+    std::ostream& operator<<(std::ostream& str, const OrderLifetime& lifetime);
+    std::ostream& operator<<(std::ostream& str, const OrderType& type);
+    std::ostream& operator<<(std::ostream& str, const Order& order);
 
 } // TradingEngine::Data
 
