@@ -36,6 +36,12 @@ namespace TradingEngine::Data {
         Level(int64_t price, Order &head);
 
         ~Level(){
+            if (Head == Tail) {
+                delete Head;
+                Head = nullptr;
+                Tail = nullptr;
+                return;
+            }
             if (Head != nullptr) {
                 delete Head;
                 Head = nullptr;
