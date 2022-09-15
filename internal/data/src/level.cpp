@@ -37,6 +37,10 @@ namespace TradingEngine::Data {
     }
 
     void Level::RemoveOrder(OrderNode *order) {
+        if (order == Head)
+            Head = order->Next;
+        if (order == Tail)
+            Tail = order->Prev;
         if (order->Prev != nullptr)
             order->Prev->Next = order->Next;
         if (order->Next != nullptr)

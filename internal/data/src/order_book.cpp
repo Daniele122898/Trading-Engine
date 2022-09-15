@@ -65,6 +65,30 @@ namespace TradingEngine::Data {
         }
     }
 
+    void OrderBook::ClearEmptyLevels() {
+        // Check Asks
+        int toRemove = 0;
+        for (auto& lvl:m_asks) {
+            if (lvl.IsEmpty())
+                ++toRemove;
+            else
+                break;
+        }
+        if (toRemove > 0)
+            m_asks.erase(m_asks.begin(), std::next(m_asks.begin(), toRemove));
+
+        // Check bids
+        toRemove = 0;
+        for (auto& lvl:m_bids) {
+            if (lvl.IsEmpty())
+                ++toRemove;
+            else
+                break;
+        }
+        if (toRemove > 0)
+            m_bids.erase(m_bids.begin(), std::next(m_bids.begin(), toRemove));
+    }
+
     std::ostream& operator<<(std::ostream& str, const OrderBook& book) {
         int width = 30;
         std::string sep = std::string(width, '-');

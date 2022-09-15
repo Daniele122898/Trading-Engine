@@ -30,6 +30,7 @@ namespace TradingEngine::Data {
 
         void AddOrder(Order &order);
         void RemoveOrder(uint64_t Id);
+        void ClearEmptyLevels();
 
     private:
         [[nodiscard]]

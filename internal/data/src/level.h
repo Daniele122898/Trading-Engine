@@ -55,7 +55,7 @@ namespace TradingEngine::Data {
         [[nodiscard]]
         inline LevelSide Side() const;
         [[nodiscard]]
-        inline bool IsEmpty() const { return Head == nullptr; }
+        inline bool IsEmpty() const { return Head == nullptr || TotalVolume == 0; }
 
         inline void IncreaseVolume(uint64_t amount) { TotalVolume += amount; }
         inline void DecreaseVolume(uint64_t amount) { TotalVolume -= amount; }

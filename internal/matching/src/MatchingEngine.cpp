@@ -16,10 +16,11 @@ namespace TradingEngine::Matching {
         }
 
         auto& ob = obIt->second;
-        // First we add order, then we match
 
         // True if the match was complete -> Order either filled, or of kill variant
-        if (Match(order, ob)) {
+        bool finishedMatch = Match(order, ob);
+        ob.ClearEmptyLevels();
+        if (finishedMatch) {
             return;
         }
 
@@ -83,7 +84,7 @@ namespace TradingEngine::Matching {
             if (compare(level.Price, order.Price)) {
                 CORE_TRACE("IOC limit {} {} next lvl price {}, aborting FILLING",
                            order.Price,
-                           (order.Side == Data::OrderSide::BUY ? "above" : "below"),
+                           (order.Side == Data::OrderSide::BUY ? "below" : "above"),
                            level.Price);
                 break;
             }
@@ -92,17 +93,17 @@ namespace TradingEngine::Matching {
                 Data::Order &o = curr->Order;
                 uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
                 order.CurrentQuantity -= diff;
-                o.CurrentQuantity -= diff;
 
                 Data::OrderNode *next = curr->Next;
                 if (o.CurrentQuantity == 0) {
                     level.RemoveOrder(curr);
                 } else {
                     level.DecreaseVolume(diff);
+                    o.CurrentQuantity -= diff;
                 }
                 curr = next;
 
-                if (order.CurrentQuantity > 0)
+                if (order.CurrentQuantity == 0)
                     return true;
             }
         }
