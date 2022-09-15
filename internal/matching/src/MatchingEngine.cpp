@@ -15,7 +15,7 @@ namespace TradingEngine::Matching {
             return;
         }
 
-        auto ob = obIt->second;
+        auto& ob = obIt->second;
         // First we add order, then we match
 
         // True if the match was complete -> Order either filled, or of kill variant
@@ -70,9 +70,9 @@ namespace TradingEngine::Matching {
 
     bool MatchingEngine::MatchIOC(Data::Order &order, Data::OrderBook &book) {
         if (order.Side == Data::OrderSide::BUY) {
-            return MatchIOC(order, book.Bids(), m_greater);
+            return MatchIOC(order, book.Asks(), m_greater);
         } else {
-            return MatchIOC(order, book.Asks(), m_less);
+            return MatchIOC(order, book.Bids(), m_less);
         }
     }
 

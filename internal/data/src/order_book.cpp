@@ -49,7 +49,7 @@ namespace TradingEngine::Data {
         if (order.Side == OrderSide::BUY) {
             auto lvlIt = m_bids.find(lvl);
             if (lvlIt == m_bids.end()) {
-                auto ret = m_bids.insert(std::move(lvl));
+                auto ret = m_bids.emplace(order.Price);
                 return const_cast<Level &>(*(ret.first));
             } else {
                 return const_cast<Level &>(*lvlIt);
@@ -57,7 +57,7 @@ namespace TradingEngine::Data {
         } else {
             auto lvlIt = m_asks.find(lvl);
             if (lvlIt == m_asks.end()) {
-                auto ret = m_asks.insert(std::move(lvl));
+                auto ret = m_asks.emplace(order.Price);
                 return const_cast<Level &>(*(ret.first));
             } else {
                 return const_cast<Level &>(*lvlIt);
@@ -83,7 +83,7 @@ namespace TradingEngine::Data {
             // right
             spacer = std::string(lineSpace-right.size(), ' ');
             str << "| " << right << spacer;
-            str << '\n';
+            str << "|\n";
         };
 
         writeLine("bid Vol", "price", "ask vol");

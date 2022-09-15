@@ -63,10 +63,10 @@ namespace TradingEngine::Data {
             return Price <=> rhs.Price;
         }
 
-//        Level(const Level& node) = delete;
-//        Level(Level&& node) = delete;
-//        Level operator=(const Level& node) = delete;
-//        Level operator=(Level&& node) = delete;
+        Level(const Level& node) = delete;
+        Level(Level&& node) = delete;
+        Level operator=(const Level& node) = delete;
+        Level operator=(Level&& node) = delete;
 
     private:
         std::unordered_map<uint64_t, OrderNode*> m_orderMappings;
