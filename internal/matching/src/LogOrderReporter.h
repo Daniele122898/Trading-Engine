@@ -5,18 +5,22 @@
 #ifndef TRADINGENGINE_LOGORDERREPORTER_H
 #define TRADINGENGINE_LOGORDERREPORTER_H
 
-#include <cstdint>
-#include "log.h"
+#include <OrderReport.h>
+#include <log.h>
 
 namespace TradingEngine::Matching {
 
     class LogOrderReporter {
     public:
-        void ReportOrderFill(uint64_t orderId, uint64_t againstId, int64_t price, uint32_t quantity) {
-            CORE_INFO("FILL REPORT: {} against {}: {} x {}", orderId, againstId, price, quantity);
+        void ReportOrderFill(OrderReport report) {
+            CORE_INFO("FILL REPORT: {} against {}: {} x {}",
+                      report.OrderId,
+                      report.AgainstId,
+                      report.Price,
+                      report.Quantity);
         }
     };
 
-} // Server
+} // Matching
 
 #endif //TRADINGENGINE_LOGORDERREPORTER_H

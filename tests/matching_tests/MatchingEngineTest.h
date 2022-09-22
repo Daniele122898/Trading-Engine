@@ -9,6 +9,7 @@
 #include <MatchingEngine.h>
 #include "gtest/gtest.h"
 #include <LogOrderReporter.h>
+#include <ThreadedLogReporter.h>
 
 class MatchingEngineTest : public ::testing::Test {
 protected:
@@ -39,7 +40,11 @@ protected:
         CORE_INFO(*m_engine.OrderBook(symbol.Id));
     }
 
-    TradingEngine::Matching::MatchingEngine<TradingEngine::Matching::LogOrderReporter> m_engine{TradingEngine::Matching::LogOrderReporter{}};
+
+
+    TradingEngine::Matching::MatchingEngine<TradingEngine::Matching::ThreadedLogOrderReporter>
+            m_engine{TradingEngine::Matching::MatchReporter(
+                    std::make_unique<TradingEngine::Matching::ThreadedLogOrderReporter>())};
 
 };
 

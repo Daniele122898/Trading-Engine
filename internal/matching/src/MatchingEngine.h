@@ -5,19 +5,24 @@
 #ifndef TRADINGENGINE_MATCHINGENGINE_H
 #define TRADINGENGINE_MATCHINGENGINE_H
 
-#include "symbol.h"
 #include <vector>
 #include <unordered_map>
+
+#include "symbol.h"
 #include "order_book.h"
 #include "not_implemented_exception.h"
 #include "log.h"
+#include "MatchReporter.h"
 
 namespace TradingEngine::Matching {
 
     template<typename R>
     class MatchingEngine {
     public:
-        explicit MatchingEngine(R reporter) : m_reporter{reporter} {}
+//        explicit MatchingEngine(R reporter) : m_reporter{reporter} {}
+
+        explicit MatchingEngine(MatchReporter<R> reporter) :
+                m_reporter{std::move(reporter)} {}
 
         void AddOrder(Data::Order &order) {
             CORE_TRACE("Received Order: {}", order);
@@ -147,6 +152,8 @@ namespace TradingEngine::Matching {
                     }
 
                     uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
+                    // Report match
+                    m_reporter.ReportOrderFill(OrderReport{order.Id, o.Id, level.Price, diff});
                     order.CurrentQuantity -= diff;
 
                     Data::OrderNode *next = curr->Next;
@@ -177,7 +184,9 @@ namespace TradingEngine::Matching {
 
         std::unordered_map<uint32_t, Data::OrderBook> m_orderBooks{};
         std::unordered_map<uint64_t, Data::Order> m_orders{};
-        R m_reporter;
+
+        MatchReporter<R> m_reporter;
+
     };
 
 } // Server

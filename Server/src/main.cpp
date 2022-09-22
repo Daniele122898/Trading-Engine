@@ -1,15 +1,16 @@
 #include <log.h>
 #include <MatchingEngine.h>
 #include "LogOrderReporter.h"
+#include "ThreadedLogReporter.h"
 
 using namespace TradingEngine;
 
 int main() {
     Util::log::Init("Matching Engine");
 
-    Server::LogOrderReporter reporter{};
 
-    Matching::MatchingEngine<Server::LogOrderReporter> engine{reporter};
+    Matching::MatchingEngine<Matching::ThreadedLogOrderReporter> engine{
+        Matching::MatchReporter(std::make_unique<Matching::ThreadedLogOrderReporter>())};
 
     Data::Symbol symbol{1, "AAPL"};
     engine.AddSymbol(symbol);
