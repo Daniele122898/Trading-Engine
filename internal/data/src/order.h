@@ -33,6 +33,7 @@ namespace TradingEngine::Data {
     struct Order {
 
         uint64_t Id;
+        uint64_t UserId;
         uint32_t SymbolId;
 
         OrderType Type;
@@ -51,6 +52,7 @@ namespace TradingEngine::Data {
         Order() = default;
 
         Order(uint64_t id,
+              uint64_t userId,
               uint32_t symbolId,
               OrderType type,
               OrderSide side,

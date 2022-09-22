@@ -19,6 +19,7 @@ TEST_F(MatchingEngineTest, TestIOCBuy) {
     TradingEngine::Data::Order order {
             11,
             1,
+            1,
             TradingEngine::Data::OrderType::IOC,
             TradingEngine::Data::OrderSide::BUY,
             TradingEngine::Data::OrderLifetime::GFD,
@@ -41,6 +42,7 @@ TEST_F(MatchingEngineTest, TestIOCBuy) {
     order = {
             12,
             1,
+            1,
             TradingEngine::Data::OrderType::IOC,
             TradingEngine::Data::OrderSide::BUY,
             TradingEngine::Data::OrderLifetime::GFD,
@@ -55,6 +57,7 @@ TEST_F(MatchingEngineTest, TestIOCBuy) {
     order= {
             13,
             1,
+            1,
             TradingEngine::Data::OrderType::IOC,
             TradingEngine::Data::OrderSide::BUY,
             TradingEngine::Data::OrderLifetime::GFD,
@@ -68,6 +71,7 @@ TEST_F(MatchingEngineTest, TestIOCBuy) {
 TEST_F(MatchingEngineTest, TestIOCSell) {
     TradingEngine::Data::Order order {
             11,
+            1,
             1,
             TradingEngine::Data::OrderType::IOC,
             TradingEngine::Data::OrderSide::SELL,
@@ -91,6 +95,7 @@ TEST_F(MatchingEngineTest, TestIOCSell) {
     order = {
             12,
             1,
+            1,
             TradingEngine::Data::OrderType::IOC,
             TradingEngine::Data::OrderSide::SELL,
             TradingEngine::Data::OrderLifetime::GFD,
@@ -104,6 +109,7 @@ TEST_F(MatchingEngineTest, TestIOCSell) {
 
     order= {
             13,
+            1,
             1,
             TradingEngine::Data::OrderType::IOC,
             TradingEngine::Data::OrderSide::SELL,

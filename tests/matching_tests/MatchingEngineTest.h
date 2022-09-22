@@ -8,6 +8,7 @@
 #include <log.h>
 #include <MatchingEngine.h>
 #include "gtest/gtest.h"
+#include <LogOrderReporter.h>
 
 class MatchingEngineTest : public ::testing::Test {
 protected:
@@ -22,6 +23,7 @@ protected:
         for (int i = 0; i < 10; ++i) {
             Order order{
                 static_cast<uint64_t>(i),
+                0,
                 symbol.Id,
                 OrderType::LIMIT,
                 TradingEngine::Data::OrderSide::BUY,
@@ -37,7 +39,7 @@ protected:
         CORE_INFO(*m_engine.OrderBook(symbol.Id));
     }
 
-    TradingEngine::Matching::MatchingEngine m_engine{};
+    TradingEngine::Matching::MatchingEngine<TradingEngine::Matching::LogOrderReporter> m_engine{TradingEngine::Matching::LogOrderReporter{}};
 
 };
 

@@ -6,9 +6,9 @@
 
 namespace TradingEngine::Data {
 
-    Order::Order(uint64_t id, uint32_t symbolId, OrderType type, OrderSide side, OrderLifetime lifetime,
+    Order::Order(uint64_t id, uint64_t userId, uint32_t symbolId, OrderType type, OrderSide side, OrderLifetime lifetime,
                  int64_t price, uint32_t initialQuantity) :
-                 Id{id}, SymbolId{symbolId}, Type{type}, Side{side}, Lifetime{lifetime}, Price{price}, InitialQuantity{initialQuantity}, CurrentQuantity{initialQuantity} {
+                 Id{id}, UserId{userId}, SymbolId{symbolId}, Type{type}, Side{side}, Lifetime{lifetime}, Price{price}, InitialQuantity{initialQuantity}, CurrentQuantity{initialQuantity} {
     }
 
     std::ostream& operator<<(std::ostream& str, const OrderLifetime& lifetime) {
