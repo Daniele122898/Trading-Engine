@@ -38,8 +38,8 @@ namespace TradingEngine::Data {
 
         struct Symbol m_symbol;
 
-        std::set<Level, std::greater<>> m_bids{};
-        std::set<Level, std::less<>> m_asks{};
+        std::set<Level, std::greater<Level>> m_bids{};
+        std::set<Level, std::less<Level>> m_asks{};
         std::unordered_map<uint64_t , Order> m_orders{};
     };
 

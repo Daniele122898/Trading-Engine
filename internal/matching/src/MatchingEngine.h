@@ -19,7 +19,6 @@ namespace TradingEngine::Matching {
     template<typename R>
     class MatchingEngine {
     public:
-//        explicit MatchingEngine(R reporter) : m_reporter{reporter} {}
 
         explicit MatchingEngine(MatchReporter<R> reporter) :
                 m_reporter{std::move(reporter)} {}
@@ -91,8 +90,8 @@ namespace TradingEngine::Matching {
                 case Data::OrderType::LIMIT:
                     return MatchIOC(order, book);
                 case Data::OrderType::FOK:
-                    throw Util::not_implemented_exception();
-                    break;
+                    MatchFOK(order, book);
+                    return true;
                 case Data::OrderType::IOC:
                     MatchIOC(order, book);
                     return true;
@@ -109,16 +108,99 @@ namespace TradingEngine::Matching {
             return false;
         }
 
+        void MatchFOK(Data::Order &order, Data::OrderBook &book) {
+            if (order.Side == Data::OrderSide::BUY) {
+                MatchFOK(order, book.Asks(), m_greater);
+            } else {
+                MatchFOK(order, book.Bids(), m_less);
+            }
+        }
+
+        template<template<class> class S, typename Comp>
+        void MatchFOK(Data::Order &order, std::set<Data::Level, S<Data::Level>> const &levels, Comp &compare) {
+            std::vector<Data::OrderNode* > orderNodes{};
+            uint32_t currQ = order.CurrentQuantity;
+            for (auto &lvl: levels) {
+                if (currQ == 0)
+                    break;
+
+                auto &level = const_cast<Data::Level &>(lvl);
+                if (compare(level.Price, order.Price)) {
+                    CORE_TRACE("FOK limit {} {} next lvl price {}, aborting COLLECTION",
+                               order.Price,
+                               (order.Side == Data::OrderSide::BUY ? "below" : "above"),
+                               level.Price);
+                    break;
+                }
+
+                Data::OrderNode *curr = level.Head;
+                while (curr != nullptr) {
+                    Data::Order &o = curr->Order;
+                    // Check for self trade
+                    if (o.UserId == order.UserId) {
+                        // TODO: maybe throw or error out
+                        CORE_INFO("ENCOUNTERED SELF TRADE, ABORTING FILL {}\n{}", o, order);
+                        return;
+                    }
+
+                    uint32_t diff = std::min(currQ, o.CurrentQuantity);
+                    currQ -= diff;
+                    orderNodes.push_back(curr);
+
+                    if (currQ == 0)
+                        break;
+
+                    curr = curr->Next;
+                }
+            }
+
+            // Check if we can fill!
+            if (currQ > 0) {
+                // We can't fill, CANCEL!
+                CORE_TRACE("Cant Fill FOK, CANCEL! Leftover: {}", currQ);
+                return;
+            }
+
+            // We can fill, thus match all orders
+            for (Data::OrderNode* node : orderNodes) {
+                Data::Order &o = node->Order;
+
+                uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
+                // Report match
+                m_reporter.ReportOrderFill(OrderReport{order.Id, o.Id, o.Price, diff});
+                order.CurrentQuantity -= diff;
+
+                Data::Level* level = nullptr;
+                for (auto &lvl: levels) {
+                    if (lvl.Price == o.Price) {
+                        level = &const_cast<Data::Level &>(lvl);
+                        break;
+                    }
+                }
+                if (level == nullptr) {
+                    CORE_ERROR("TRYING TO FILL ORDER {} THAT DOESNT HAVE LEVEL WITH PRICE {}", o, o.Price);
+                    return;
+                }
+
+                level->DecreaseVolume(diff);
+                o.CurrentQuantity -= diff;
+
+                if (o.CurrentQuantity == 0) {
+                    level->RemoveOrder(node);
+                }
+            }
+        }
+
         bool MatchMarket(Data::Order &order, Data::OrderBook &book) {
             // For now, we'll pretend a Market Order is basically an IOC with infinite price
             if (order.Side == Data::OrderSide::BUY) {
                 order.Price = INT64_MAX;
-                return MatchIOC(order, book.Bids(), m_greater);
+                return MatchIOC(order, book.Asks(), m_greater);
             } else {
                 // let's not use a negative value here. We dont want the seller to have to pay
                 // TODO: check correctness of this. Might be broken
                 order.Price = 0;
-                return MatchIOC(order, book.Asks(), m_less);
+                return MatchIOC(order, book.Bids(), m_less);
             }
         }
 
@@ -157,11 +239,12 @@ namespace TradingEngine::Matching {
                     order.CurrentQuantity -= diff;
 
                     Data::OrderNode *next = curr->Next;
+
+                    level.DecreaseVolume(diff);
+                    o.CurrentQuantity -= diff;
+
                     if (o.CurrentQuantity == 0) {
                         level.RemoveOrder(curr);
-                    } else {
-                        level.DecreaseVolume(diff);
-                        o.CurrentQuantity -= diff;
                     }
                     curr = next;
 
