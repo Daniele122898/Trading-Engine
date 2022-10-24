@@ -1,6 +1,6 @@
 #include <log.h>
 #include <MatchingEngine.h>
-#include "LogOrderReporter.h"
+#include <crow.h>
 #include "ThreadedLogReporter.h"
 
 using namespace TradingEngine;
@@ -25,4 +25,7 @@ int main() {
                       10);
 
     engine.AddOrder(order);
+
+    crow::SimpleApp app;
+    app.port(18080).multithreaded().run();
 }
