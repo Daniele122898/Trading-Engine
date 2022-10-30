@@ -26,4 +26,4 @@ namespace TradingEngine::Data {
     };
 }
 
-#endif //TRADINGENGINE_SYMBOL_H
+#endif //TRADINGENGINE_SYMBOLDTO_H

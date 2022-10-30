@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(external/spdlog)
 add_subdirectory(external/gtest)
+add_subdirectory(external/json)
 
 add_subdirectory(internal/data)
 add_subdirectory(internal/util)
