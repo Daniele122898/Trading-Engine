@@ -7,24 +7,30 @@
 
 #include <crow.h>
 #include <nlohmann/json.hpp>
+#include <utility>
 #include <symbol.h>
 
 class SymbolDto : public crow::returnable {
 public:
-    explicit SymbolDto(TradingEngine::Data::Symbol const * symbol) :
-        crow::returnable("application/json"), m_symbol{symbol} {};
+    explicit SymbolDto(TradingEngine::Data::Symbol symbol) :
+        crow::returnable("application/json"), m_symbol{std::move(symbol)} {};
 
     [[nodiscard]]
     std::string dump() const override {
-        nlohmann::json j = {
-                {"id", m_symbol->Id},
-                {"ticker", m_symbol->Ticker}
-        };
-
+        auto j = dumpJson();
         return j.dump();
     }
+
+    [[nodiscard]]
+    nlohmann::json dumpJson() const {
+        return nlohmann::json {
+                {"id", m_symbol.Id},
+                {"ticker", m_symbol.Ticker}
+        };
+    }
+
 private:
-    TradingEngine::Data::Symbol const * m_symbol;
+    TradingEngine::Data::Symbol m_symbol;
 };
 
 #endif //TRADINGENGINE_SYMBOLDTO_H

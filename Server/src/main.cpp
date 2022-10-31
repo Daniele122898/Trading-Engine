@@ -4,6 +4,7 @@
 #include "ThreadedLogReporter.h"
 
 #include "dtos/SymbolDto.h"
+#include "dtos/VectorReturnable.h"
 
 using namespace TradingEngine;
 
@@ -11,10 +12,12 @@ int main() {
     Util::log::Init("Matching Engine");
 
     Matching::MatchingEngine<Matching::ThreadedLogOrderReporter> engine{
-        Matching::MatchReporter(std::make_unique<Matching::ThreadedLogOrderReporter>())};
+            Matching::MatchReporter(std::make_unique<Matching::ThreadedLogOrderReporter>())};
 
     Data::Symbol symbol{1, "AAPL"};
+    Data::Symbol symbol2{2, "GOOG"};
     engine.AddSymbol(symbol);
+    engine.AddSymbol(symbol2);
 
     Data::Order order(1,
                       1,
@@ -36,20 +39,30 @@ int main() {
 #endif
 
     // Endpoints
-    CROW_ROUTE(app, "/symbol").methods("POST"_method)([](){
+    CROW_ROUTE(app, "/symbol").methods("POST"_method)([]() {
         return "Test";
     });
-    CROW_ROUTE(app, "/symbols").methods("GET"_method)([](){
-        return "Test";
+    CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine]() {
+        auto symbols = engine.Symbols();
+        std::vector<SymbolDto> symbolsDto{};
+        symbolsDto.reserve(symbols.size());
+
+        for (auto& s:symbols) {
+            SymbolDto sdto{std::move(s)};
+            symbolsDto.push_back(sdto);
+        }
+
+        return VectorReturnable{std::move(symbolsDto), "symbols"};
+
     });
-    CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine](unsigned int symbolId){
+    CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine](unsigned int symbolId) {
         auto symbol = engine.Symbol(symbolId);
-        return SymbolDto{symbol};
+        return SymbolDto{*symbol};
     });
-    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([](unsigned int orderBookId){
+    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([](unsigned int orderBookId) {
         return "Test";
     });
-    CROW_ROUTE(app, "/order").methods("POST"_method)([](){
+    CROW_ROUTE(app, "/order").methods("POST"_method)([]() {
         return "Test";
     });
 
