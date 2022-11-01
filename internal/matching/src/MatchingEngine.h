@@ -44,7 +44,7 @@ namespace TradingEngine::Matching {
             ob.AddOrder(m_orders.at(order.Id));
         }
 
-        void AddSymbol(Data::Symbol const &symbol) {
+        void AddSymbol(Data::Symbol const & symbol) {
             // check if symbol already exists
             if (m_symbols.contains(symbol.Id))
                 return;

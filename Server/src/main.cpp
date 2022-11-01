@@ -14,8 +14,10 @@ int main() {
     Matching::MatchingEngine<Matching::ThreadedLogOrderReporter> engine{
             Matching::MatchReporter(std::make_unique<Matching::ThreadedLogOrderReporter>())};
 
-    Data::Symbol symbol{1, "AAPL"};
-    Data::Symbol symbol2{2, "GOOG"};
+    uint32_t sId = 1;
+
+    Data::Symbol symbol{sId++, "AAPL"};
+    Data::Symbol symbol2{sId++, "GOOG"};
     engine.AddSymbol(symbol);
     engine.AddSymbol(symbol2);
 
@@ -39,8 +41,12 @@ int main() {
 #endif
 
     // Endpoints
-    CROW_ROUTE(app, "/symbol").methods("POST"_method)([]() {
-        return "Test";
+    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &sId](const crow::request &req) {
+        auto json = nlohmann::json::parse(req.body);
+        Data::Symbol symbol{sId++, json["ticker"]};
+        engine.AddSymbol(symbol);
+
+        return crow::response{200};
     });
     CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine]() {
         auto symbols = engine.Symbols();
