@@ -51,8 +51,9 @@ int main() {
         Data::Symbol symbol{sId++, json["ticker"]};
         engine.AddSymbol(symbol);
 
-        return crow::response{200};
+        return crow::response{crow::status::OK};
     });
+
     CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine]() {
         auto symbols = engine.Symbols();
         std::vector<SymbolDto> symbolsDto{};
@@ -66,16 +67,19 @@ int main() {
         return VectorReturnable{std::move(symbolsDto), "symbols"};
 
     });
+
     CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine](unsigned int symbolId) {
         auto symbol = engine.Symbol(symbolId);
         if (symbol == nullptr) {
             return crow::response{404};
         }
-        return SymbolDto{*symbol};
+        return crow::response{SymbolDto{*symbol}};
     });
+
     CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([](unsigned int orderBookId) {
         return "Test";
     });
+
     CROW_ROUTE(app, "/order").methods("POST"_method)([]() {
         return "Test";
     });
