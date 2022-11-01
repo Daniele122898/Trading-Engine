@@ -42,6 +42,11 @@ int main() {
 
     // Endpoints
     CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &sId](const crow::request &req) {
+        if (req.body.empty()) {
+            return crow::response{400};
+        }
+
+        // TODO check parsing
         auto json = nlohmann::json::parse(req.body);
         Data::Symbol symbol{sId++, json["ticker"]};
         engine.AddSymbol(symbol);
@@ -63,6 +68,9 @@ int main() {
     });
     CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine](unsigned int symbolId) {
         auto symbol = engine.Symbol(symbolId);
+        if (symbol == nullptr) {
+            return crow::response{404};
+        }
         return SymbolDto{*symbol};
     });
     CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([](unsigned int orderBookId) {
