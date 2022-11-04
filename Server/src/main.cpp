@@ -9,6 +9,21 @@
 
 using namespace TradingEngine;
 
+namespace TradingEngine::Data {
+    void from_json(nlohmann::json const & json, Order& order) {
+        // TODO: Add validation
+        json.at("id").get_to(order.Id);
+        json.at("userId").get_to(order.UserId);
+        json.at("symbolId").get_to(order.SymbolId);
+        json.at("type").get_to(order.Type);
+        json.at("side").get_to(order.Side);
+        json.at("lifetime").get_to(order.Lifetime);
+        json.at("price").get_to(order.Price);
+        json.at("initialQ").get_to(order.InitialQuantity);
+        json.at("initialQ").get_to(order.CurrentQuantity);
+    }
+}
+
 int main() {
     Util::log::Init("Matching Engine");
 
@@ -16,13 +31,14 @@ int main() {
             Matching::MatchReporter(std::make_unique<Matching::ThreadedLogOrderReporter>())};
 
     uint32_t sId = 1;
+    uint64_t oId = 1;
 
     Data::Symbol symbol{sId++, "AAPL"};
     Data::Symbol symbol2{sId++, "GOOG"};
     engine.AddSymbol(symbol);
     engine.AddSymbol(symbol2);
 
-    Data::Order order(1,
+    Data::Order order(oId++,
                       1,
                       1,
                       TradingEngine::Data::OrderType::LIMIT,
@@ -31,7 +47,7 @@ int main() {
                       10,
                       10);
 
-    Data::Order order2(2,
+    Data::Order order2(oId++,
                       1,
                       1,
                       TradingEngine::Data::OrderType::LIMIT,
@@ -95,8 +111,18 @@ int main() {
         return crow::response{OrderBookDto{book}};
     });
 
-    CROW_ROUTE(app, "/order").methods("POST"_method)([]() {
-        return "Test";
+    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &oId](const crow::request &req) {
+        if (req.body.empty()) {
+            return crow::response{400};
+        }
+
+        // TODO check parsing
+        auto json = nlohmann::json::parse(req.body);
+        json["id"] = oId++;
+        auto order = json.get<Data::Order>();
+        engine.AddOrder(order);
+
+        return crow::response{crow::status::OK};
     });
 
     CORE_TRACE("Starting Server on port 18080");
