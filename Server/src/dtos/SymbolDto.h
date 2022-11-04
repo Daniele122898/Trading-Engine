@@ -17,12 +17,12 @@ public:
 
     [[nodiscard]]
     std::string dump() const override {
-        auto j = dumpJson();
+        auto j = toJson();
         return j.dump();
     }
 
     [[nodiscard]]
-    nlohmann::json dumpJson() const {
+    nlohmann::json toJson() const {
         return nlohmann::json {
                 {"id", m_symbol.Id},
                 {"ticker", m_symbol.Ticker}

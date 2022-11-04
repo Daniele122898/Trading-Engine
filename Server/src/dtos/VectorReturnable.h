@@ -17,19 +17,38 @@ public:
 
     [[nodiscard]]
     std::string dump() const override {
+        auto j = toJson();
+        return j.dump();
+    }
+
+    [[nodiscard]]
+    nlohmann::json toJson() const {
         std::vector<nlohmann::json> jsonData{};
         jsonData.reserve(m_data.size());
 
         for (auto& d: m_data) {
-            jsonData.push_back(d.dumpJson());
+            jsonData.push_back(d.toJson());
         }
 
         nlohmann::json j = {
                 {m_name, jsonData}
         };
 
-        return j.dump();
+        return j;
     }
+
+    [[nodiscard]]
+    nlohmann::json toFlattenJson() const {
+        std::vector<nlohmann::json> jsonData{};
+        jsonData.reserve(m_data.size());
+
+        for (auto& d: m_data) {
+            jsonData.push_back(d.toJson());
+        }
+
+        return {m_name, jsonData};
+    }
+
 private:
     std::vector<T> m_data;
     std::string m_name;

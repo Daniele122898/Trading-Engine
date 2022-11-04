@@ -5,6 +5,7 @@
 
 #include "dtos/SymbolDto.h"
 #include "dtos/VectorReturnable.h"
+#include "dtos/OrderBookDto.h"
 
 using namespace TradingEngine;
 
@@ -30,7 +31,17 @@ int main() {
                       10,
                       10);
 
+    Data::Order order2(2,
+                      1,
+                      1,
+                      TradingEngine::Data::OrderType::LIMIT,
+                      TradingEngine::Data::OrderSide::BUY,
+                      TradingEngine::Data::OrderLifetime::GFD,
+                      9,
+                      10);
+
     engine.AddOrder(order);
+    engine.AddOrder(order2);
 
     crow::SimpleApp app;
 
@@ -76,8 +87,12 @@ int main() {
         return crow::response{SymbolDto{*symbol}};
     });
 
-    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([](unsigned int orderBookId) {
-        return "Test";
+    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([&engine](unsigned int orderBookId) {
+        Data::OrderBook const * book = engine.OrderBook(orderBookId);
+        if (book == nullptr) {
+            return crow::response{404};
+        }
+        return crow::response{OrderBookDto{book}};
     });
 
     CROW_ROUTE(app, "/order").methods("POST"_method)([]() {
