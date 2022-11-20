@@ -2,3 +2,4 @@ cmake-build-debug/
 .idea/
 out/
 .vs/
+/**/cmake-build-debug/
