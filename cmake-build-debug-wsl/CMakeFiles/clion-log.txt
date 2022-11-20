@@ -1,0 +1,11 @@
+C:\Windows\system32\wsl.exe --distribution Ubuntu --exec /bin/bash -c "export PATH=\"$PATH:\" && export CMAKE_COLOR_DIAGNOSTICS=ON && export CLION_IDE=TRUE && export JETBRAINS_IDE=TRUE && cd /home/daniele/dev/cpp/Trading-Engine/cmake-build-debug-wsl && /usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_C_COMPILER=clang-14 '-DCMAKE_CXX_COMPILER=clang++-14' -G Ninja -S /home/daniele/dev/cpp/Trading-Engine -B /home/daniele/dev/cpp/Trading-Engine/cmake-build-debug-wsl"
+-- Build spdlog: 1.10.0
+-- Build type: Debug
+-- Using the multi-header code from /home/daniele/dev/cpp/Trading-Engine/external/json/include/
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Generating config.h
+-- Generating config.h - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/daniele/dev/cpp/Trading-Engine/cmake-build-debug-wsl

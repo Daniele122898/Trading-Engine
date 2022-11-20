@@ -9,6 +9,7 @@
 
 namespace TradingEngine::Matching {
     struct OrderReport {
+        OrderReport() {};
         OrderReport(uint64_t orderId, uint64_t againstId, int64_t price, uint32_t quantity):
                 OrderId{orderId}, AgainstId{againstId}, Price{price}, Quantity{quantity} {}
 

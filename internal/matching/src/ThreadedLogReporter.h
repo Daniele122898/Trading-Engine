@@ -40,14 +40,14 @@ namespace TradingEngine::Matching {
         ThreadedLogOrderReporter(ThreadedLogOrderReporter&& reporter) = delete;
         ThreadedLogOrderReporter& operator=(ThreadedLogOrderReporter&& other) = delete;
 
-
     private:
 
         void LoggingLoop() {
             while (m_running) {
                 OrderReport report{};
                 // block wait for new reports, timed to be killable
-                m_reports.wait_dequeue_timed(report, std::chrono::milliseconds(5));
+                if (!m_reports.wait_dequeue_timed(report, std::chrono::milliseconds(5)))
+                    return;
 
                 CORE_INFO("FILL REPORT: {} against {}: {} x {}",
                           report.OrderId,
@@ -56,7 +56,6 @@ namespace TradingEngine::Matching {
                           report.Quantity);
             }
         }
-
 
         moodycamel::BlockingReaderWriterQueue<OrderReport> m_reports{1000};
         std::thread m_thread;

@@ -10,3 +10,9 @@
 [submodule "external/json"]
 	path = external/json
 	url = git@github.com:nlohmann/json.git
+[submodule "external/libpqxx"]
+	path = external/libpqxx
+	url = git@github.com:jtv/libpqxx.git
+[submodule "external/rwq"]
+	path = external/rwq
+	url = git@github.com:cameron314/readerwriterqueue.git

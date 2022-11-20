@@ -18,28 +18,29 @@ else()
 endif()
 
 target_include_directories(${PROJECT_NAME}
-        PUBLIC
+        PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/../external/crow/include
         )
 
 target_link_libraries(${PROJECT_NAME}
-        PUBLIC
+        PRIVATE
             Threads::Threads
             data
             util
             matching
             nlohmann_json
+            pqxx
 )
 
 if(WIN32)
     target_include_directories(${PROJECT_NAME}
-            PUBLIC
+            PRIVATE
             ws2_32
             wsock32
             )
 
     target_link_libraries(${PROJECT_NAME}
-            PUBLIC
+            PRIVATE
             ws2_32
             wsock32
             )

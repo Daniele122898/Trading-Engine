@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <chrono>
 
 namespace TradingEngine::Data {
     enum class OrderType {
@@ -45,6 +46,10 @@ namespace TradingEngine::Data {
 
         uint32_t InitialQuantity;
         uint32_t CurrentQuantity;
+
+        // TODO: Implement expiry
+        // Expiry in ms since UTC Epoch 1970-01-01 00:00.000 UTC
+        std::chrono::duration<int64_t, std::ratio<1, 1000000000>> expiryMs;
 
         [[nodiscard]]
         inline uint32_t QuantityLeft() const { return InitialQuantity - CurrentQuantity; }
