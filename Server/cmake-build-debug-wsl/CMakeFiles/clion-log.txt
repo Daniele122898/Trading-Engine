@@ -1,9 +1,0 @@
-C:\Windows\system32\wsl.exe --distribution Ubuntu --exec /bin/bash -c "export PATH=\"$PATH:\" && export CMAKE_COLOR_DIAGNOSTICS=ON && export CLION_IDE=TRUE && export JETBRAINS_IDE=TRUE && cd /home/daniele/dev/cpp/Trading-Engine/Server/cmake-build-debug-wsl && /usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_C_COMPILER=clang-14 '-DCMAKE_CXX_COMPILER=clang++-14' -G Ninja -S /home/daniele/dev/cpp/Trading-Engine/Server -B /home/daniele/dev/cpp/Trading-Engine/Server/cmake-build-debug-wsl"
-CMake Error at /usr/share/cmake-3.22/Modules/CMakeDetermineSystem.cmake:130 (message):
-  Could not find toolchain file:
-  C:/Code/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-Call Stack (most recent call first):
-  CMakeLists.txt:3 (project)
-
-
--- Configuring incomplete, errors occurred!
