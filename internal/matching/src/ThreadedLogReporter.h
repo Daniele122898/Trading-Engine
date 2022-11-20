@@ -40,7 +40,6 @@ namespace TradingEngine::Matching {
         ThreadedLogOrderReporter(ThreadedLogOrderReporter&& reporter) = delete;
         ThreadedLogOrderReporter& operator=(ThreadedLogOrderReporter&& other) = delete;
 
-
     private:
 
         void LoggingLoop() {
@@ -56,7 +55,6 @@ namespace TradingEngine::Matching {
                           report.Quantity);
             }
         }
-
 
         moodycamel::BlockingReaderWriterQueue<OrderReport> m_reports{1000};
         std::thread m_thread;
