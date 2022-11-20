@@ -9,6 +9,8 @@
 #include <log.h>
 #include <thread>
 #include <deque>
+#include <readerwriterqueue.h>
+#include <chrono>
 
 namespace TradingEngine::Matching {
 
@@ -30,8 +32,7 @@ namespace TradingEngine::Matching {
         }
 
         void ReportOrderFill(OrderReport report) {
-            std::lock_guard guard{m_mutex};
-            m_reports.push_back(report);
+            m_reports.enqueue(report);
         }
 
         ThreadedLogOrderReporter(const ThreadedLogOrderReporter& reporter) = delete;
@@ -44,14 +45,9 @@ namespace TradingEngine::Matching {
 
         void LoggingLoop() {
             while (m_running) {
-                m_mutex.lock();
-                if (m_reports.empty())  {
-                    m_mutex.unlock();
-                    continue;
-                }
-                OrderReport report = m_reports.front();
-                m_reports.pop_front();
-                m_mutex.unlock();
+                OrderReport report{};
+                // block wait for new reports, timed to be killable
+                m_reports.wait_dequeue_timed(report, std::chrono::milliseconds(5));
 
                 CORE_INFO("FILL REPORT: {} against {}: {} x {}",
                           report.OrderId,
@@ -62,9 +58,8 @@ namespace TradingEngine::Matching {
         }
 
 
-        std::deque<OrderReport> m_reports{};
+        moodycamel::BlockingReaderWriterQueue<OrderReport> m_reports{1000};
         std::thread m_thread;
-        std::mutex m_mutex{};
         bool m_running = true;
     };
 
