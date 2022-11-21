@@ -17,7 +17,7 @@ using namespace TradingEngine;
 namespace TradingEngine::Data {
     void from_json(nlohmann::json const &json, Order &order) {
         // TODO: Add validation
-        json.at("id").get_to(order.Id);
+//        json.at("id").get_to(order.Id);
         json.at("userId").get_to(order.UserId);
         json.at("symbolId").get_to(order.SymbolId);
         json.at("type").get_to(order.Type);
@@ -26,6 +26,23 @@ namespace TradingEngine::Data {
         json.at("price").get_to(order.Price);
         json.at("initialQ").get_to(order.InitialQuantity);
         json.at("initialQ").get_to(order.CurrentQuantity);
+
+        if (order.Lifetime == OrderLifetime::GTD) {
+            auto days = json.at("daysToExpiry").get<int32_t>();
+            if (days == 1) {
+                order.Lifetime = OrderLifetime::GFD;
+            } else if (days <= 0) {
+                throw nlohmann::json::parse_error::create(105, 0, "Invalid amount of days", &json);
+            } else {
+                auto currently = std::chrono::time_point_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now()
+                );
+                currently += std::chrono::days(days);
+                order.ExpiryMs = currently.time_since_epoch();
+//                std::chrono::year_month_day ymd{std::chrono::floor<std::chrono::days>(currently)};
+            }
+        }
+
     }
 }
 
@@ -38,42 +55,44 @@ int main() {
 
     Util::log::Init("Matching Engine");
 
+    std::chrono::time_point currently = std::chrono::time_point_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now()
+    );
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> tp{std::chrono::seconds{1669039514}};
+    auto days = std::chrono::floor<std::chrono::days>(tp);
+
+    std::chrono::year_month_day ymd{days};
+    std::cout << "Current Year: " << static_cast<int>(ymd.year())
+              << ", Month: " << static_cast<unsigned>(ymd.month())
+              << ", Day: " << static_cast<unsigned>(ymd.day()) << '\n';
+    std::cout << std::chrono::system_clock::to_time_t(currently) << std::endl;
+    currently += std::chrono::days(10);
+
+    ymd = std::chrono::floor<std::chrono::days>(currently);
+    std::cout << "Current Year: " << static_cast<int>(ymd.year())
+              << ", Month: " << static_cast<unsigned>(ymd.month())
+              << ", Day: " << static_cast<unsigned>(ymd.day()) << '\n';
+
+    std::cout << std::chrono::system_clock::to_time_t(currently) << std::endl;
+    std::chrono::duration millis_since_utc_epoch = currently.time_since_epoch();
+
     TradingEngine::Db::Database db{"postgres://postgres:test123@localhost:5432/trading_test"};
     db.CreateTablesIfNotExist();
 
-    uint64_t lastOrderId = db.LastUsedOrderId();
-    CORE_TRACE("Last used order ID: {}", lastOrderId);
+//    uint64_t lastOrderId = db.LastUsedOrderId();
+//    CORE_TRACE("Last used order ID: {}", lastOrderId);
+
+//    std::atomic<uint64_t> nextOrderId{++lastOrderId};
 
     Matching::MatchingEngine<Matching::ThreadedLogOrderReporter> engine{
             Matching::MatchReporter(std::make_unique<Matching::ThreadedLogOrderReporter>())};
 
 
     auto symbols = db.GetSymbols();
-    for (auto& symb : symbols) {
+    for (auto &symb: symbols) {
         CORE_TRACE("Adding symbol {} {}", symb.Id, symb.Ticker);
         engine.AddSymbol(symb);
     }
-
-    Data::Order order(++lastOrderId,
-                      1,
-                      1,
-                      TradingEngine::Data::OrderType::LIMIT,
-                      TradingEngine::Data::OrderSide::BUY,
-                      TradingEngine::Data::OrderLifetime::GFD,
-                      10,
-                      10);
-
-    Data::Order order2(++lastOrderId,
-                       1,
-                       1,
-                       TradingEngine::Data::OrderType::LIMIT,
-                       TradingEngine::Data::OrderSide::BUY,
-                       TradingEngine::Data::OrderLifetime::GFD,
-                       9,
-                       10);
-
-    engine.AddOrder(order);
-    engine.AddOrder(order2);
 
     crow::SimpleApp app;
 
@@ -89,15 +108,28 @@ int main() {
             return crow::response{400};
         }
 
-        // TODO check parsing
-        auto json = nlohmann::json::parse(req.body);
+        try {
+            auto json = nlohmann::json::parse(req.body);
 
-        // TODO ERROR HANDLING
-        auto id = db.AddSymbol(json["ticker"]);
-        CORE_TRACE("Adding symbol {} with id {}", json["ticker"], id);
+            auto id = db.AddSymbol(json["ticker"]);
+            CORE_TRACE("Adding symbol {} with id {}", json["ticker"], id);
 
-        Data::Symbol symbol{id, json["ticker"]};
-        engine.AddSymbol(symbol);
+            Data::Symbol symbol{id, json["ticker"]};
+            engine.AddSymbol(symbol);
+        }
+        catch (pqxx::sql_error const &e) {
+            CORE_ERROR("SQL ERROR: {}", e.what());
+            CORE_ERROR("QUERY: {}", e.query());
+            return crow::response{crow::status::BAD_REQUEST, "Misformed or already existing ticker name"};
+        }
+        catch (nlohmann::json::parse_error &ex) {
+            CORE_ERROR("FAILED TO PARSE JSON {}\n at byte {}\n{}", req.body, ex.byte, ex.what());
+            return crow::response{crow::status::BAD_REQUEST, "Bad JSON"};
+        }
+        catch (std::exception const &e) {
+            CORE_ERROR("ERROR: {}", e.what());
+            return crow::response{crow::status::BAD_REQUEST};
+        }
 
         return crow::response{crow::status::OK};
     });
@@ -113,7 +145,6 @@ int main() {
         }
 
         return VectorReturnable{std::move(symbolsDto), "symbols"};
-
     });
 
     CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine](unsigned int symbolId) {
@@ -132,16 +163,39 @@ int main() {
         return crow::response{OrderBookDto{book}};
     });
 
-    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &lastOrderId](const crow::request &req) {
+    // TODO check user id / authentication etc.
+    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db](const crow::request &req) {
         if (req.body.empty()) {
             return crow::response{400};
         }
 
-        // TODO check parsing
-        auto json = nlohmann::json::parse(req.body);
-        json["id"] = ++lastOrderId;
-        auto order = json.get<Data::Order>();
-        engine.AddOrder(order);
+        try {
+            auto json = nlohmann::json::parse(req.body);
+//            json["id"] = nextOrderId.load();
+            auto order = json.get<Data::Order>();
+            order.CreationTp = std::chrono::time_point_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now()
+            );
+            // TODO move to seperate thread
+            auto id = db.AddOrder(order);
+            order.Id = id;
+            CORE_TRACE("ADDED ORDER WITH ID {}", id);
+//            nextOrderId.store(++id);
+            engine.AddOrder(order);
+        }
+        catch (pqxx::sql_error const &e) {
+            CORE_ERROR("SQL ERROR: {}", e.what());
+            CORE_ERROR("QUERY: {}", e.query());
+            return crow::response{crow::status::BAD_REQUEST, "Misformed order entry"};
+        }
+        catch (nlohmann::json::parse_error &ex) {
+            CORE_ERROR("FAILED TO PARSE JSON {}\n at byte {}\n{}", req.body, ex.byte, ex.what());
+            return crow::response{crow::status::BAD_REQUEST, "Bad JSON"};
+        }
+        catch (std::exception const &e) {
+            CORE_ERROR("ERROR: {}", e.what());
+            return crow::response{crow::status::BAD_REQUEST};
+        }
 
         return crow::response{crow::status::OK};
     });

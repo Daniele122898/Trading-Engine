@@ -10,6 +10,7 @@
 #include <string>
 #include <pqxx/pqxx>
 #include <symbol.h>
+#include <order.h>
 
 namespace TradingEngine::Db {
 
@@ -64,9 +65,10 @@ namespace TradingEngine::Db {
                         "finalQ integer NOT NULL, "
                         "expiry date NOT NULL, "
                         "creation timestamp NOT NULL, "
-                        "filledAt timestamp NOT NULL, "
-                        "counterOrderId bigint NOT NULL, "
-                        "counterUserId bigint REFERENCES users(id) "
+                        "filled_at timestamp NOT NULL, "
+                        "counter_order_id bigint, "
+                        "counter_user_id bigint REFERENCES users(id), "
+                        "reason smallint NOT NULL "
                         ")");
 
                 txn.exec0(
@@ -74,12 +76,12 @@ namespace TradingEngine::Db {
                         "SELECT * FROM ( "
                         "select id, userId, symbolId, type, side, lifetime, price, "
                         "initialQ, finalQ as currentQ,  "
-                        "expiry, creation, filledAt, counterOrderId, counterUserId, "
+                        "expiry, creation, filled_at, counter_order_id, counter_user_id, reason, "
                         "true isFill from fills union all  "
                         "select id, userId, symbolId, type, side, lifetime, price, "
                         "initialQ, currentQ,  "
-                        "expiry, creation, NULL as filledAt, NULL as counterOrderId, "
-                        "NULL as counterUserId, false isFill from orders) c"
+                        "expiry, creation, NULL as filled_at, NULL as counter_order_id, "
+                        "NULL as counter_user_id, NULL as reason, false isFill from orders) c"
                 );
 
                 txn.commit();
@@ -128,6 +130,65 @@ namespace TradingEngine::Db {
             );
             txn.commit();
             return lastOrderId;
+        }
+
+        uint64_t AddOrder(Data::Order const & order) {
+            pqxx::work txn{m_conn};
+            std::stringstream query;
+            query << "INSERT INTO public.orders(userid, symbolid, type, side, "
+                << "lifetime, price, initialq, currentq, expiry, creation) "
+                << "VALUES ("
+                << order.UserId << ", "
+                << order.SymbolId << ", "
+                << static_cast<int>(order.Type) << ", "
+                << static_cast<int>(order.Side) << ", "
+                << static_cast<int>(order.Lifetime) << ", "
+                << order.Price << ", "
+                << order.InitialQuantity << ", "
+                << order.CurrentQuantity << ", "
+                << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
+                << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << ") "
+                << ")";
+            txn.exec0(query.str());
+
+            uint64_t currOrderId = txn.query_value<uint64_t>(
+                    "SELECT last_value FROM orders_id_seq"
+            );
+            txn.commit();
+
+            return currOrderId;
+        }
+
+        void AddFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason) {
+            pqxx::work txn{m_conn};
+            std::stringstream query;
+            query << "INSERT INTO public.fills(id, userid, symbolid, type, side, "
+                  << "lifetime, price, initialq, finalq, expiry, creation, "
+                     "filled_at, counter_order_id, counter_user_id, reason) "
+                  << "VALUES ("
+                  << order.Id << ", "
+                  << order.UserId << ", "
+                  << order.SymbolId << ", "
+                  << static_cast<int>(order.Type) << ", "
+                  << static_cast<int>(order.Side) << ", "
+                  << static_cast<int>(order.Lifetime) << ", "
+                  << order.Price << ", "
+                  << order.InitialQuantity << ", "
+                  << order.CurrentQuantity << ", "
+                  << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
+                  << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << ") "
+                  << "CURRENT_TIMESTAMP, ";
+
+            if (reason == Data::FillReason::FILLED) {
+                query << counterOrder.Id << ", "
+                      << counterOrder.UserId << ", ";
+            } else {
+                query << "NULL , NULL , ";
+            }
+            query << static_cast<int>(reason) << ")";
+
+            txn.exec0(query.str());
+            txn.commit();
         }
 
     private:

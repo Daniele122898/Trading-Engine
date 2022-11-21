@@ -20,6 +20,13 @@ namespace TradingEngine::Data {
         QUOTE,
     };
 
+    enum class FillReason {
+        SELF_TRADE,
+        CANCELLED,
+        FILLED,
+        EXPIRED
+    };
+
     enum class OrderSide {
         BUY,
         SELL
@@ -49,7 +56,9 @@ namespace TradingEngine::Data {
 
         // TODO: Implement expiry
         // Expiry in ms since UTC Epoch 1970-01-01 00:00.000 UTC
-        std::chrono::duration<int64_t, std::ratio<1, 1000000000>> expiryMs;
+//        std::chrono::duration<int64_t, std::ratio<1, 1000000000>> ExpiryMs;
+        std::chrono::milliseconds ExpiryMs;
+        std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> CreationTp;
 
         [[nodiscard]]
         inline uint32_t QuantityLeft() const { return InitialQuantity - CurrentQuantity; }
