@@ -9,20 +9,22 @@
 
 namespace TradingEngine::Matching {
 
-    template<typename Impl>
+    template<typename Logger, typename Persistence>
     class MatchReporter {
     public:
 //        explicit MatchReporter(Impl implementation) : m_implementation{implementation} {}
 
-        explicit MatchReporter(std::unique_ptr<Impl> implementation) :
-                m_implementation{std::move(implementation)} {}
+        explicit MatchReporter(std::unique_ptr<Logger> logger, std::unique_ptr<Persistence> persistence) :
+                m_logger{std::move(logger)}, m_persistence{std::move(persistence)} {}
 
-        inline void ReportOrderFill(OrderReport report) {
-            m_implementation->ReportOrderFill(report);
+        inline void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0) {
+            m_persistence->ReportOrderFill(order, counterOrder, reason, diff);
+            m_logger->ReportOrderFill(order, counterOrder, reason, diff);
         }
 
     private:
-        std::unique_ptr<Impl> m_implementation;
+        std::unique_ptr<Logger> m_logger;
+        std::unique_ptr<Persistence> m_persistence;
 
     };
 

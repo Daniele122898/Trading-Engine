@@ -31,8 +31,9 @@ namespace TradingEngine::Matching {
             CORE_INFO("Killed reporter thread");
         }
 
-        void ReportOrderFill(OrderReport report) {
-            m_reports.enqueue(report);
+        void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0) {
+            m_reports.emplace(order.Id, counterOrder.Id, order.Price, diff);
+//            m_reports.enqueue(OrderReport{order.Id, counterOrder.Id, order.Price, diff});
         }
 
         ThreadedLogOrderReporter(const ThreadedLogOrderReporter& reporter) = delete;
@@ -47,7 +48,7 @@ namespace TradingEngine::Matching {
                 OrderReport report{};
                 // block wait for new reports, timed to be killable
                 if (!m_reports.wait_dequeue_timed(report, std::chrono::milliseconds(5)))
-                    return;
+                    continue;
 
                 CORE_INFO("FILL REPORT: {} against {}: {} x {}",
                           report.OrderId,

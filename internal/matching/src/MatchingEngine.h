@@ -16,11 +16,11 @@
 
 namespace TradingEngine::Matching {
 
-    template<typename R>
+    template<typename Logger, typename Persistence>
     class MatchingEngine {
     public:
 
-        explicit MatchingEngine(MatchReporter<R> reporter) :
+        explicit MatchingEngine(MatchReporter<Logger, Persistence> reporter) :
                 m_reporter{std::move(reporter)} {}
 
         void AddOrder(Data::Order &order) {
@@ -140,6 +140,7 @@ namespace TradingEngine::Matching {
                     if (o.UserId == order.UserId) {
                         // TODO: maybe throw or error out
                         CORE_INFO("ENCOUNTERED SELF TRADE, ABORTING FILL {}\n{}", o, order);
+                        m_reporter.ReportOrderFill(order, order, Data::FillReason::SELF_TRADE);
                         return;
                     }
 
@@ -166,8 +167,6 @@ namespace TradingEngine::Matching {
                 Data::Order &o = node->Order;
 
                 uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
-                // Report match
-                m_reporter.ReportOrderFill(OrderReport{order.Id, o.Id, o.Price, diff});
                 order.CurrentQuantity -= diff;
 
                 Data::Level* level = nullptr;
@@ -185,7 +184,12 @@ namespace TradingEngine::Matching {
                 level->DecreaseVolume(diff);
                 o.CurrentQuantity -= diff;
 
+                if (order.CurrentQuantity == 0) {
+                    m_reporter.ReportOrderFill(order, o, Data::FillReason::FILLED, diff);
+                }
+
                 if (o.CurrentQuantity == 0) {
+                    m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
                     level->RemoveOrder(node);
                 }
             }
@@ -230,12 +234,11 @@ namespace TradingEngine::Matching {
                     if (o.UserId == order.UserId) {
                         // TODO: maybe throw or error out
                         CORE_INFO("ENCOUNTERED SELF TRADE, ABORTING FILL {}\n{}", o, order);
-                        return false;
+                        m_reporter.ReportOrderFill(order, order, Data::FillReason::SELF_TRADE);
+                        return true;
                     }
 
                     uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
-                    // Report match
-                    m_reporter.ReportOrderFill(OrderReport{order.Id, o.Id, level.Price, diff});
                     order.CurrentQuantity -= diff;
 
                     Data::OrderNode *next = curr->Next;
@@ -244,12 +247,15 @@ namespace TradingEngine::Matching {
                     o.CurrentQuantity -= diff;
 
                     if (o.CurrentQuantity == 0) {
+                        m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
                         level.RemoveOrder(curr);
                     }
                     curr = next;
 
-                    if (order.CurrentQuantity == 0)
+                    if (order.CurrentQuantity == 0) {
+                        m_reporter.ReportOrderFill(order, o, Data::FillReason::FILLED, diff);
                         return true;
+                    }
                 }
             }
 
@@ -268,7 +274,7 @@ namespace TradingEngine::Matching {
         std::unordered_map<uint32_t, Data::OrderBook> m_orderBooks{};
         std::unordered_map<uint64_t, Data::Order> m_orders{};
 
-        MatchReporter<R> m_reporter;
+        MatchReporter<Logger, Persistence> m_reporter;
 
     };
 

@@ -161,6 +161,10 @@ namespace TradingEngine::Db {
 
         void AddFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason) {
             pqxx::work txn{m_conn};
+
+            // if this fails, we'll fail the entire transaction
+            txn.exec0("DELETE FROM public.orders WHERE Id = " + std::to_string(order.Id));
+
             std::stringstream query;
             query << "INSERT INTO public.fills(id, userid, symbolid, type, side, "
                   << "lifetime, price, initialq, finalq, expiry, creation, "
@@ -176,7 +180,7 @@ namespace TradingEngine::Db {
                   << order.InitialQuantity << ", "
                   << order.CurrentQuantity << ", "
                   << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
-                  << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << ") "
+                  << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << "), "
                   << "CURRENT_TIMESTAMP, ";
 
             if (reason == Data::FillReason::FILLED) {

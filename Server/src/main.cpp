@@ -8,6 +8,7 @@
 #include "dtos/OrderBookDto.h"
 
 #include "db/db.h"
+#include "db/fill_persistence.h"
 
 #include <chrono>
 #include <iostream>
@@ -84,8 +85,10 @@ int main() {
 
 //    std::atomic<uint64_t> nextOrderId{++lastOrderId};
 
-    Matching::MatchingEngine<Matching::ThreadedLogOrderReporter> engine{
-            Matching::MatchReporter(std::make_unique<Matching::ThreadedLogOrderReporter>())};
+    Matching::MatchingEngine<Matching::ThreadedLogOrderReporter, Db::FillPersistence> engine{
+            Matching::MatchReporter(
+                    std::make_unique<Matching::ThreadedLogOrderReporter>(),
+                    std::make_unique<Db::FillPersistence>(db))};
 
 
     auto symbols = db.GetSymbols();
