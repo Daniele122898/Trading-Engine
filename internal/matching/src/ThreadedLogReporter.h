@@ -33,7 +33,6 @@ namespace TradingEngine::Matching {
 
         void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0) {
             m_reports.emplace(order.Id, counterOrder.Id, order.Price, diff);
-//            m_reports.enqueue(OrderReport{order.Id, counterOrder.Id, order.Price, diff});
         }
 
         ThreadedLogOrderReporter(const ThreadedLogOrderReporter& reporter) = delete;
