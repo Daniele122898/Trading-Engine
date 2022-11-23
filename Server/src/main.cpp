@@ -1,8 +1,11 @@
 #include <log.h>
 #include <MatchingEngine.h>
 #include <crow.h>
-#include "ThreadedLogReporter.h"
+#include <chrono>
+#include <iostream>
+#include <string>
 
+#include "ThreadedLogReporter.h"
 #include "dtos/SymbolDto.h"
 #include "dtos/VectorReturnable.h"
 #include "dtos/OrderBookDto.h"
@@ -10,14 +13,13 @@
 #include "db/db.h"
 #include "db/fill_persistence.h"
 
-#include <chrono>
-#include <iostream>
+
+#include "enc.h"
 
 using namespace TradingEngine;
 
 namespace TradingEngine::Data {
     void from_json(nlohmann::json const &json, Order &order) {
-        // TODO: Add validation
 //        json.at("id").get_to(order.Id);
         json.at("userId").get_to(order.UserId);
         json.at("symbolId").get_to(order.SymbolId);
@@ -104,8 +106,91 @@ int main() {
 #else
     app.loglevel(crow::LogLevel::Warning);
 #endif
+    CROW_ROUTE(app, "/login").methods("POST"_method)([&db](const crow::request &req) {
+        if (req.body.empty()) {
+            return crow::response{400};
+        }
+
+        try {
+            auto json = nlohmann::json::parse(req.body);
+
+            if (json.contains("apikey")) {
+                auto apikey = json.at("apikey").get<std::string>();
+                uint64_t userId;
+                if (!db.TryGetUserId(apikey, userId)) {
+                    return crow::response{crow::BAD_REQUEST};
+                }
+            } else {
+                auto username = json.at("username").get<std::string>();
+                auto password = json.at("password").get<std::string>();
+
+                uint64_t userId;
+                std::basic_string<std::byte> passhash;
+                std::basic_string<std::byte> salt;
+                std::string apikey;
+                if (!db.TryGetUser(username, userId, passhash, salt, apikey)) {
+                    return crow::response{crow::BAD_REQUEST};
+                }
+                if (!sha256_match(passhash, salt, password)) {
+                    return crow::response{crow::BAD_REQUEST};
+                }
+
+            }
+        }
+        catch (pqxx::sql_error const &e) {
+            CORE_ERROR("SQL ERROR: {}", e.what());
+            CORE_ERROR("QUERY: {}", e.query());
+            return crow::response{crow::status::BAD_REQUEST, "Misformed query"};
+        }
+        catch (nlohmann::json::parse_error &ex) {
+            CORE_ERROR("FAILED TO PARSE JSON {}\n at byte {}\n{}", req.body, ex.byte, ex.what());
+            return crow::response{crow::status::BAD_REQUEST, "Bad JSON"};
+        }
+        catch (std::exception const &e) {
+            CORE_ERROR("ERROR: {}", e.what());
+            return crow::response{crow::status::BAD_REQUEST};
+        }
+
+        return crow::response{crow::OK};
+    });
 
     // Endpoints
+    CROW_ROUTE(app, "/register").methods("POST"_method)([&db](const crow::request &req) {
+        if (req.body.empty()) {
+            return crow::response{400};
+        }
+
+        try {
+            auto json = nlohmann::json::parse(req.body);
+
+            auto username = json.at("username").get<std::string>();
+            auto password = json.at("password").get<std::string>();
+            auto email = json.at("email").get<std::string>();
+
+            unsigned char hash[32];
+            unsigned char salt[32];
+            unsigned char apikey[32];
+            sha256_salted(password, hash, salt);
+            get_rand(apikey, 32);
+            auto userid = db.AddUser(username, email, hash, salt, apikey);
+        }
+        catch (pqxx::sql_error const &e) {
+            CORE_ERROR("SQL ERROR: {}", e.what());
+            CORE_ERROR("QUERY: {}", e.query());
+            return crow::response{crow::status::BAD_REQUEST, "Misformed query"};
+        }
+        catch (nlohmann::json::parse_error &ex) {
+            CORE_ERROR("FAILED TO PARSE JSON {}\n at byte {}\n{}", req.body, ex.byte, ex.what());
+            return crow::response{crow::status::BAD_REQUEST, "Bad JSON"};
+        }
+        catch (std::exception const &e) {
+            CORE_ERROR("ERROR: {}", e.what());
+            return crow::response{crow::status::BAD_REQUEST};
+        }
+
+        return crow::response{crow::OK};
+    });
+
     CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db](const crow::request &req) {
         if (req.body.empty()) {
             return crow::response{400};

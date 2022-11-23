@@ -9,6 +9,7 @@
 
 namespace TradingEngine::Db {
 
+    // TODO create threaded, non-blocking version of this
     class FillPersistence {
     public:
         explicit FillPersistence(Database& db): m_database{db} {}

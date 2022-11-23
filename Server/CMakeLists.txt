@@ -10,6 +10,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.h")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /wd4201)
@@ -30,6 +31,8 @@ target_link_libraries(${PROJECT_NAME}
             matching
             nlohmann_json
             pqxx
+            OpenSSL::Crypto
+            OpenSSL::SSL
 )
 
 if(WIN32)

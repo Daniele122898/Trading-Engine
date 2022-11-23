@@ -26,9 +26,10 @@ namespace TradingEngine::Db {
                         "CREATE TABLE IF NOT EXISTS public.users ( "
                         "id bigserial PRIMARY KEY, "
                         "username varchar(25) NOT NULL UNIQUE, "
-                        "password varchar(256) NOT NULL, "
-                        "salt varchar(256) NOT NULL, "
-                        "apikey varchar(256) NOT NULL UNIQUE "
+                        "email varchar(320) NOT NULL UNIQUE, "
+                        "password varchar(128) NOT NULL, "
+                        "salt varchar(128) NOT NULL, "
+                        "apikey varchar(128) NOT NULL UNIQUE "
                         ")");
 
                 txn.exec0(
@@ -193,6 +194,61 @@ namespace TradingEngine::Db {
 
             txn.exec0(query.str());
             txn.commit();
+        }
+
+        bool TryGetUserId(std::string & apikey, uint64_t& id) {
+            pqxx::work txn{m_conn};
+            pqxx::result r{txn.exec("SELECT id FROM public.users WHERE apikey = " + m_conn.quote(apikey))};
+            if (r.empty())
+                return false;
+
+            id = r[0][0].as<uint64_t>();
+            txn.commit();
+
+            return true;
+        }
+
+        bool TryGetUser(std::string & username, uint64_t& id, std::basic_string<std::byte>& password, std::basic_string<std::byte>& salt, std::string& apikey) {
+            pqxx::work txn{m_conn};
+            pqxx::result r{txn.exec("SELECT id, password, salt, apikey FROM public.users WHERE username = " + m_conn.quote(username))};
+            if (r.empty())
+                return false;
+
+            id = r[0][0].as<uint64_t>();
+            password = m_conn.unesc_bin(r[0][1].as<std::string>());
+            salt = m_conn.unesc_bin(r[0][2].as<std::string>());
+            apikey = r[0][3].as<std::string>();
+
+            txn.commit();
+
+            return true;
+        }
+
+        uint64_t AddUser(std::string username, std::string email, unsigned char* pwhash, unsigned char* salt, unsigned char* apikey) {
+            pqxx::work txn{m_conn};
+
+            std::string password(reinterpret_cast<char*>(pwhash), 32);
+            std::string saltstr(reinterpret_cast<char*>(salt), 32);
+            std::string apikeystr(reinterpret_cast<char*>(apikey), 32);
+
+            std::stringstream query;
+            query << "INSERT INTO public.users(username, email, password, salt, apikey) VALUES ("
+                  << "'" << username << "', "
+                  << "'" << email << "', "
+                  << m_conn.quote(pqxx::binary_cast(password)) << ", "
+                  << m_conn.quote(pqxx::binary_cast(saltstr)) << ", "
+                  << "encode(" << m_conn.quote(pqxx::binary_cast(apikeystr)) << "::bytea, 'base64')"
+                  << ")";
+
+            txn.exec0(query.str());
+
+            uint64_t currUserId = txn.query_value<uint64_t>(
+                    "SELECT last_value FROM users_id_seq"
+            );
+
+            txn.commit();
+
+            return currUserId;
         }
 
     private:
