@@ -233,8 +233,8 @@ namespace TradingEngine::Db {
 
             std::stringstream query;
             query << "INSERT INTO public.users(username, email, password, salt, apikey) VALUES ("
-                  << "'" << username << "', "
-                  << "'" << email << "', "
+                  << m_conn.quote(username) << ", "
+                  << m_conn.quote(email) << ", "
                   << m_conn.quote(pqxx::binary_cast(password)) << ", "
                   << m_conn.quote(pqxx::binary_cast(saltstr)) << ", "
                   << "encode(" << m_conn.quote(pqxx::binary_cast(apikeystr)) << "::bytea, 'base64')"

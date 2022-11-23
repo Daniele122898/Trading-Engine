@@ -4,15 +4,16 @@
 #include <chrono>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 #include "ThreadedLogReporter.h"
+
 #include "dtos/SymbolDto.h"
 #include "dtos/VectorReturnable.h"
 #include "dtos/OrderBookDto.h"
 
 #include "db/db.h"
 #include "db/fill_persistence.h"
-
 
 #include "enc.h"
 
@@ -21,7 +22,7 @@ using namespace TradingEngine;
 namespace TradingEngine::Data {
     void from_json(nlohmann::json const &json, Order &order) {
 //        json.at("id").get_to(order.Id);
-        json.at("userId").get_to(order.UserId);
+//        json.at("userId").get_to(order.UserId);
         json.at("symbolId").get_to(order.SymbolId);
         json.at("type").get_to(order.Type);
         json.at("side").get_to(order.Side);
@@ -99,6 +100,8 @@ int main() {
         engine.AddSymbol(symb);
     }
 
+    std::unordered_map<std::string, uint64_t> users{};
+
     crow::SimpleApp app;
 
 #ifndef NDEBUG
@@ -106,10 +109,19 @@ int main() {
 #else
     app.loglevel(crow::LogLevel::Warning);
 #endif
-    CROW_ROUTE(app, "/login").methods("POST"_method)([&db](const crow::request &req) {
-        if (req.body.empty()) {
-            return crow::response{400};
-        }
+#define AUTHENTICATE(req) std::string apikey = req.get_header_value("Authorization"); \
+    auto it = users.find(apikey); \
+    if (it == users.end()) { \
+        return crow::response{crow::UNAUTHORIZED}; \
+    }\
+    auto userId = it->second
+
+#define EMPTY_BODY(req) if (req.body.empty()) { \
+    return crow::response{400}; \
+}
+
+    CROW_ROUTE(app, "/login").methods("POST"_method)([&db, &users](const crow::request &req) {
+        EMPTY_BODY(req);
 
         try {
             auto json = nlohmann::json::parse(req.body);
@@ -120,6 +132,7 @@ int main() {
                 if (!db.TryGetUserId(apikey, userId)) {
                     return crow::response{crow::BAD_REQUEST};
                 }
+                users[apikey] = userId;
             } else {
                 auto username = json.at("username").get<std::string>();
                 auto password = json.at("password").get<std::string>();
@@ -135,6 +148,9 @@ int main() {
                     return crow::response{crow::BAD_REQUEST};
                 }
 
+                users[apikey] = userId;
+
+                return crow::response{apikey};
             }
         }
         catch (pqxx::sql_error const &e) {
@@ -156,9 +172,7 @@ int main() {
 
     // Endpoints
     CROW_ROUTE(app, "/register").methods("POST"_method)([&db](const crow::request &req) {
-        if (req.body.empty()) {
-            return crow::response{400};
-        }
+        EMPTY_BODY(req);
 
         try {
             auto json = nlohmann::json::parse(req.body);
@@ -191,10 +205,9 @@ int main() {
         return crow::response{crow::OK};
     });
 
-    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db](const crow::request &req) {
-        if (req.body.empty()) {
-            return crow::response{400};
-        }
+    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users](const crow::request &req) {
+        AUTHENTICATE(req);
+        EMPTY_BODY(req);
 
         try {
             auto json = nlohmann::json::parse(req.body);
@@ -222,7 +235,9 @@ int main() {
         return crow::response{crow::status::OK};
     });
 
-    CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine]() {
+    CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine, &users](const crow::request &req) {
+        AUTHENTICATE(req);
+
         auto symbols = engine.Symbols();
         std::vector<SymbolDto> symbolsDto{};
         symbolsDto.reserve(symbols.size());
@@ -232,10 +247,12 @@ int main() {
             symbolsDto.push_back(sdto);
         }
 
-        return VectorReturnable{std::move(symbolsDto), "symbols"};
+        return crow::response{VectorReturnable{std::move(symbolsDto), "symbols"}};
     });
 
-    CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine](unsigned int symbolId) {
+    CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine, &users](const crow::request &req, unsigned int symbolId) {
+        AUTHENTICATE(req);
+
         auto symbol = engine.Symbol(symbolId);
         if (symbol == nullptr) {
             return crow::response{404};
@@ -243,7 +260,9 @@ int main() {
         return crow::response{SymbolDto{*symbol}};
     });
 
-    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([&engine](unsigned int orderBookId) {
+    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([&engine, &users](const crow::request &req, unsigned int orderBookId) {
+        AUTHENTICATE(req);
+
         Data::OrderBook const *book = engine.OrderBook(orderBookId);
         if (book == nullptr) {
             return crow::response{404};
@@ -251,15 +270,12 @@ int main() {
         return crow::response{OrderBookDto{book}};
     });
 
-    // TODO check user id / authentication etc.
-    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db](const crow::request &req) {
-        if (req.body.empty()) {
-            return crow::response{400};
-        }
+    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users](const crow::request &req) {
+        AUTHENTICATE(req);
+        EMPTY_BODY(req);
 
         try {
             auto json = nlohmann::json::parse(req.body);
-//            json["id"] = nextOrderId.load();
             auto order = json.get<Data::Order>();
             order.CreationTp = std::chrono::time_point_cast<std::chrono::milliseconds>(
                     std::chrono::system_clock::now()
@@ -267,6 +283,7 @@ int main() {
             // TODO move to seperate thread
             auto id = db.AddOrder(order);
             order.Id = id;
+            order.UserId = userId;
             CORE_TRACE("ADDED ORDER WITH ID {}", id);
 //            nextOrderId.store(++id);
             engine.AddOrder(order);
