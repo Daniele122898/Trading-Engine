@@ -14,6 +14,7 @@
 
 #include "db/db.h"
 #include "db/fill_persistence.h"
+#include "Broadcaster.h"
 
 #include "enc.h"
 
@@ -87,20 +88,26 @@ int main() {
 //    CORE_TRACE("Last used order ID: {}", lastOrderId);
 
 //    std::atomic<uint64_t> nextOrderId{++lastOrderId};
+    std::unordered_map<std::string, uint64_t> users{};
 
-    Matching::MatchingEngine<Matching::ThreadedLogOrderReporter, Db::FillPersistence> engine{
+    auto broadcaster = std::make_shared<Broadcaster>(users);
+
+    Matching::MatchingEngine<Matching::ThreadedLogOrderReporter, Db::FillPersistence, Broadcaster> engine{
             Matching::MatchReporter(
                     std::make_unique<Matching::ThreadedLogOrderReporter>(),
-                    std::make_unique<Db::FillPersistence>(db))};
+                    std::make_unique<Db::FillPersistence>(db),
+                            broadcaster)};
 
 
     auto symbols = db.GetSymbols();
     for (auto &symb: symbols) {
         CORE_TRACE("Adding symbol {} {}", symb.Id, symb.Ticker);
         engine.AddSymbol(symb);
+        broadcaster->AddSymbol(symb.Id);
     }
 
-    std::unordered_map<std::string, uint64_t> users{};
+    // TODO LOAD ORDERS ON STARTUP
+
 
     crow::SimpleApp app;
 
@@ -108,6 +115,7 @@ int main() {
     app.loglevel(crow::LogLevel::Debug);
 #else
     app.loglevel(crow::LogLevel::Warning);
+    #define CROW_ENFORCE_WS_SPEC
 #endif
 #define AUTHENTICATE(req) std::string apikey = req.get_header_value("Authorization"); \
     auto it = users.find(apikey); \
@@ -119,6 +127,30 @@ int main() {
 #define EMPTY_BODY(req) if (req.body.empty()) { \
     return crow::response{400}; \
 }
+
+    CROW_ROUTE(app, "/ws")
+        .websocket()
+        .onaccept([&users](const crow::request& req){
+//            std::string apikey = req.get_header_value("Authorization");
+//            auto it = users.find(apikey);
+//            if (it == users.end()) {
+//                return false;
+//            }
+//            auto userId = it->second;
+            return true;
+        })
+        .onopen([&broadcaster](crow::websocket::connection& conn) {
+            broadcaster->OnOpen(conn);
+        })
+        .onclose([&broadcaster](crow::websocket::connection& conn, const std::string& reason) {
+            broadcaster->OnClose(conn, reason);
+        })
+        .onmessage([&broadcaster](crow::websocket::connection& conn, const std::string& data, bool is_binary) {
+            broadcaster->OnMessage(conn, data, is_binary);
+        })
+        .onerror([&broadcaster](crow::websocket::connection& conn) {
+            broadcaster->OnError(conn);
+        });
 
     CROW_ROUTE(app, "/login").methods("POST"_method)([&db, &users](const crow::request &req) {
         EMPTY_BODY(req);
@@ -205,7 +237,7 @@ int main() {
         return crow::response{crow::OK};
     });
 
-    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users](const crow::request &req) {
+    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
 
@@ -217,6 +249,7 @@ int main() {
 
             Data::Symbol symbol{id, json["ticker"]};
             engine.AddSymbol(symbol);
+            broadcaster->AddSymbol(symbol.Id);
         }
         catch (pqxx::sql_error const &e) {
             CORE_ERROR("SQL ERROR: {}", e.what());

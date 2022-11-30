@@ -16,11 +16,11 @@
 
 namespace TradingEngine::Matching {
 
-    template<typename Logger, typename Persistence>
+    template<typename Logger, typename Persistence, typename Broadcaster>
     class MatchingEngine {
     public:
 
-        explicit MatchingEngine(MatchReporter<Logger, Persistence> reporter) :
+        explicit MatchingEngine(MatchReporter<Logger, Persistence, Broadcaster> reporter) :
                 m_reporter{std::move(reporter)} {}
 
         void AddOrder(Data::Order &order) {
@@ -274,7 +274,7 @@ namespace TradingEngine::Matching {
         std::unordered_map<uint32_t, Data::OrderBook> m_orderBooks{};
         std::unordered_map<uint64_t, Data::Order> m_orders{};
 
-        MatchReporter<Logger, Persistence> m_reporter;
+        MatchReporter<Logger, Persistence, Broadcaster> m_reporter;
 
     };
 
