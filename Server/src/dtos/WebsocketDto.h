@@ -14,6 +14,10 @@ namespace TradingEngine::WsData {
         UNSUBSCRIBE,
         READY,
         SUCCESS,
+        SELF_TRADE,
+        CANCELLED,
+        FILLED,
+        EXPIRED,
         ERROR
     };
 
@@ -50,6 +54,18 @@ namespace TradingEngine::WsData {
         std::vector<uint32_t> symbolIds;
     };
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SubSymbol, symbolIds);
+
+    struct ShareCounter {
+        uint64_t orderId;
+        uint64_t counterId;
+        uint32_t diff;
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ShareCounter, orderId, counterId, diff);
+
+    struct Share {
+        uint64_t orderId;
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Share, orderId);
 }
 
 #endif //TRADINGENGINE_WEBSOCKETDTO_H
