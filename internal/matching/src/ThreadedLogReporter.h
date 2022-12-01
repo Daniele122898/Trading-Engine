@@ -25,10 +25,10 @@ namespace TradingEngine::Matching {
         ~ThreadedLogOrderReporter() {
             m_running = false;
             // wait for thread to shut down
-            CORE_INFO("Waiting for reporter thread to exit");
+            CORE_TRACE("Waiting for reporter thread to exit");
             if (m_thread.joinable())
                 m_thread.join();
-            CORE_INFO("Killed reporter thread");
+            CORE_TRACE("Killed reporter thread");
         }
 
         void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0) {

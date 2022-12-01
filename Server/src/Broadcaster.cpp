@@ -43,41 +43,23 @@ namespace TradingEngine {
     void
     Broadcaster::ReportOrderFill(const Data::Order &order, const Data::Order &counterOrder,
                                  Data::FillReason reason, uint32_t diff) {
-        auto sid = order.SymbolId;
-        auto wsconns = m_symbolsToUsers.find(sid);
-
-        std::string resp;
-
+        WsData::OpCodes opCode;
         switch (reason) {
-            case Data::FillReason::SELF_TRADE: {
-                nlohmann::json j = WsData::ShareCounter{order.Id, counterOrder.Id, 0};
-                nlohmann::json json = WsData::Payload {WsData::OpCodes::SELF_TRADE, std::move(j)};
-                resp = json.dump();
+            case Data::FillReason::SELF_TRADE:
+                opCode = WsData::OpCodes::SELF_TRADE;
                 break;
-            }
-            case Data::FillReason::FILLED: {
-                nlohmann::json j = WsData::ShareCounter{order.Id, counterOrder.Id, diff};
-                nlohmann::json json = WsData::Payload {WsData::OpCodes::FILLED, std::move(j)};
-                resp = json.dump();
+            case Data::FillReason::CANCELLED:
+                opCode = WsData::OpCodes::CANCELLED;
                 break;
-            }
-            case Data::FillReason::CANCELLED: {
-                nlohmann::json j = WsData::Share{order.Id};
-                nlohmann::json json = WsData::Payload {WsData::OpCodes::CANCELLED, std::move(j)};
-                resp = json.dump();
+            case Data::FillReason::FILLED:
+                opCode = WsData::OpCodes::FILLED;
                 break;
-            }
-            case Data::FillReason::EXPIRED: {
-                nlohmann::json j = WsData::Share{order.Id};
-                nlohmann::json json = WsData::Payload{WsData::OpCodes::EXPIRED, std::move(j)};
-                resp = json.dump();
+            case Data::FillReason::EXPIRED:
+                opCode = WsData::OpCodes::EXPIRED;
                 break;
-            }
         }
 
-        for (auto conn: wsconns->second) {
-            conn->send_text(resp);
-        }
+        m_reports.emplace(order.Id, counterOrder.Id, order.SymbolId, diff, opCode);
     }
 
     void Broadcaster::OnOpen(crow::websocket::connection &conn) {
@@ -222,5 +204,33 @@ namespace TradingEngine {
 
     void Broadcaster::AddSymbol(uint32_t symbolId) {
         m_symbolsToUsers.emplace(symbolId, std::vector<crow::websocket::connection *>{});
+    }
+
+    void Broadcaster::BroadcastingLoop() {
+        while (m_running) {
+            WsData::ShareReport report{};
+            // block wait for new reports, timed to be killable
+            if (!m_reports.wait_dequeue_timed(report, std::chrono::milliseconds(1)))
+                continue;
+
+            auto sid = report.SymbolId;
+            auto wsconns = m_symbolsToUsers.find(sid);
+
+            std::string resp;
+
+            if (report.OpCode == WsData::OpCodes::SELF_TRADE || report.OpCode == WsData::OpCodes::FILLED) {
+                nlohmann::json j = WsData::ShareCounter{report.OrderId, report.CounterId, 0};
+                nlohmann::json json = WsData::Payload {report.OpCode, std::move(j)};
+                resp = json.dump();
+            } else {
+                nlohmann::json j = WsData::Share{report.OrderId};
+                nlohmann::json json = WsData::Payload {report.OpCode, std::move(j)};
+                resp = json.dump();
+            }
+
+            for (auto conn: wsconns->second) {
+                conn->send_text(resp);
+            }
+        }
     }
 } // TradingEngine

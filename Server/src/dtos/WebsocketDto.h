@@ -66,6 +66,19 @@ namespace TradingEngine::WsData {
         uint64_t orderId;
     };
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Share, orderId);
+
+    struct ShareReport{
+        ShareReport() {}
+
+        ShareReport(uint64_t orderId, uint64_t counterId, uint32_t symbolId, uint32_t diff, OpCodes opCode)
+        : OrderId{orderId}, CounterId{counterId}, SymbolId{symbolId}, Diff{diff}, OpCode{opCode} {}
+
+        uint64_t OrderId;
+        uint64_t CounterId;
+        uint32_t SymbolId;
+        uint32_t Diff;
+        OpCodes OpCode;
+    };
 }
 
 #endif //TRADINGENGINE_WEBSOCKETDTO_H

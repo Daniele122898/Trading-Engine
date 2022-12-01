@@ -130,13 +130,7 @@ int main() {
 
     CROW_ROUTE(app, "/ws")
         .websocket()
-        .onaccept([&users](const crow::request& req){
-//            std::string apikey = req.get_header_value("Authorization");
-//            auto it = users.find(apikey);
-//            if (it == users.end()) {
-//                return false;
-//            }
-//            auto userId = it->second;
+        .onaccept([](const crow::request& req){
             return true;
         })
         .onopen([&broadcaster](crow::websocket::connection& conn) {
