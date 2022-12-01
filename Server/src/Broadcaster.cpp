@@ -39,7 +39,6 @@ namespace TradingEngine {
         return true;
     }
 
-    // TODO ABSOLUTELY FUCKING MULTI THREAD!
     void
     Broadcaster::ReportOrderFill(const Data::Order &order, const Data::Order &counterOrder,
                                  Data::FillReason reason, uint32_t diff) {
