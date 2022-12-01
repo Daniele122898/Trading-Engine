@@ -25,11 +25,9 @@ public:
     nlohmann::json toJson() const {
         return nlohmann::json {
                 {"id", m_order.Id},
-                {"userId", m_order.UserId},
                 {"symbolId", m_order.SymbolId},
                 {"type", m_order.Type},
                 {"side", m_order.Side},
-                {"lifetime", m_order.Lifetime},
                 {"price", m_order.Price},
                 {"initialQ", m_order.InitialQuantity},
                 {"currentQ", m_order.CurrentQuantity},

@@ -297,7 +297,7 @@ int main() {
         return crow::response{OrderBookDto{book}};
     });
 
-    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users](const crow::request &req) {
+    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users, &broadcaster](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
 
@@ -313,6 +313,7 @@ int main() {
             order.UserId = userId;
             CORE_TRACE("ADDED ORDER WITH ID {}", id);
 //            nextOrderId.store(++id);
+            broadcaster->ReportOrderCreation(order);
             engine.AddOrder(order);
         }
         catch (pqxx::sql_error const &e) {

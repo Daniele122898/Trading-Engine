@@ -39,6 +39,10 @@ namespace TradingEngine {
         return true;
     }
 
+    void Broadcaster::ReportOrderCreation(const Data::Order &order) {
+        m_creations.enqueue({order.Id, order.Price, order.SymbolId, order.InitialQuantity, order.Type, order.Side});
+    }
+
     void
     Broadcaster::ReportOrderFill(const Data::Order &order, const Data::Order &counterOrder,
                                  Data::FillReason reason, uint32_t diff) {
@@ -207,6 +211,18 @@ namespace TradingEngine {
 
     void Broadcaster::BroadcastingLoop() {
         while (m_running) {
+            WsData::Creation creation{};
+
+            if (m_creations.try_dequeue(creation)) {
+                auto wsconns = m_symbolsToUsers.find(creation.symbolId);
+                nlohmann::json jdata = creation;
+                nlohmann::json json = WsData::Payload {WsData::OpCodes::CREATION, std::move(jdata)};
+                std::string resp = json.dump();
+                for (auto conn: wsconns->second) {
+                    conn->send_text(resp);
+                }
+            }
+
             WsData::ShareReport report{};
             // block wait for new reports, timed to be killable
             if (!m_reports.wait_dequeue_timed(report, std::chrono::milliseconds(1)))
@@ -232,4 +248,5 @@ namespace TradingEngine {
             }
         }
     }
+
 } // TradingEngine

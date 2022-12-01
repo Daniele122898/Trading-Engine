@@ -33,6 +33,7 @@ namespace TradingEngine {
             CORE_TRACE("Killed reporter thread");
         }
 
+        void ReportOrderCreation(Data::Order const & order);
         void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0);
 
         void OnOpen(crow::websocket::connection& conn);
@@ -56,7 +57,8 @@ namespace TradingEngine {
         std::unordered_map<uint32_t, std::vector<crow::websocket::connection*>> m_symbolsToUsers{};
         std::mutex m_mtx;
 
-        moodycamel::BlockingReaderWriterQueue<WsData::ShareReport> m_reports{1000};
+        moodycamel::BlockingReaderWriterQueue<WsData::ShareReport> m_reports{200};
+        moodycamel::BlockingReaderWriterQueue<WsData::Creation> m_creations{200};
         std::thread m_thread;
         bool m_running = true;
     };

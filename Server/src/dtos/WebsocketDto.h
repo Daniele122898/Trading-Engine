@@ -6,6 +6,7 @@
 #define TRADINGENGINE_WEBSOCKETDTO_H
 
 #include <nlohmann/json.hpp>
+#include "order.h"
 
 namespace TradingEngine::WsData {
     enum class OpCodes {
@@ -18,6 +19,7 @@ namespace TradingEngine::WsData {
         CANCELLED,
         FILLED,
         EXPIRED,
+        CREATION,
         ERROR
     };
 
@@ -66,6 +68,17 @@ namespace TradingEngine::WsData {
         uint64_t orderId;
     };
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Share, orderId);
+
+    struct Creation {
+        uint64_t id;
+        int64_t price;
+        uint32_t symbolId;
+        uint32_t quantity;
+
+        Data::OrderType type;
+        Data::OrderSide side;
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Creation, id, price, symbolId, quantity, type, side);
 
     struct ShareReport{
         ShareReport() {}
