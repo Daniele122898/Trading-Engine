@@ -8,8 +8,6 @@
 #include <nlohmann/json.hpp>
 #include <utility>
 
-// TODO remove all locks if possible
-
 namespace TradingEngine {
 
     inline void Ack(crow::websocket::connection &conn, WsData::OpCodes opcode) {
@@ -234,7 +232,7 @@ namespace TradingEngine {
             std::string resp;
 
             if (report.OpCode == WsData::OpCodes::SELF_TRADE || report.OpCode == WsData::OpCodes::FILLED) {
-                nlohmann::json j = WsData::ShareCounter{report.OrderId, report.CounterId, 0};
+                nlohmann::json j = WsData::ShareCounter{report.OrderId, report.CounterId, report.Diff};
                 nlohmann::json json = WsData::Payload {report.OpCode, std::move(j)};
                 resp = json.dump();
             } else {
