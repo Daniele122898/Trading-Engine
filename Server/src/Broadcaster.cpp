@@ -12,9 +12,16 @@
 
 namespace TradingEngine {
 
+    inline void Ack(crow::websocket::connection & conn, WsData::OpCodes opcode) {
+        WsData::Ack ack{opcode};
+        nlohmann::json j = ack;
+        conn.send_text(j.dump());
+    }
+
     inline void Respond(crow::websocket::connection & conn, WsData::OpCodes opcode, nlohmann::json data) {
         WsData::Payload payload{opcode, std::move(data)};
-        conn.send_text(nlohmann::json{payload}.dump());
+        nlohmann::json j = payload;
+        conn.send_text(j.dump());
     }
 
     inline void RespondError(crow::websocket::connection & conn, WsData::ErrorCodes code, std::string erorrMsg) {
@@ -67,7 +74,8 @@ namespace TradingEngine {
         }
 
         try {
-            WsData::Payload request = nlohmann::json{data}.get<WsData::Payload>();
+            auto json = nlohmann::json::parse(data);
+            WsData::Payload request = json.get<WsData::Payload>();
 
             /*Switch case entries work by jumps. If you jump across a variable initialization then you cannot be sure the stack is in an ok state because you may push something to the stack when you handle a case but if you leave the switch block, you have no way of tracking that additional push you made. And so any variables defined under a case need to be popped off the stack when you leave the switch block, and the only way to do that is to surround it in its own scope*/
             switch (request.opcode) {
@@ -83,6 +91,8 @@ namespace TradingEngine {
                     std::lock_guard<std::mutex> _(m_mtx);
                     m_users[userId] = &conn;
                     conn.userdata((void*)(userId));
+
+                    Ack(conn, WsData::OpCodes::READY);
                     return;
                 }
                 case WsData::OpCodes::SUBSCRIBE: {
@@ -113,6 +123,8 @@ namespace TradingEngine {
                         auto sit = m_symbolsToUsers.find(sid);
                         sit->second.emplace_back(&conn);
                     }
+
+                    Ack(conn, WsData::OpCodes::SUCCESS);
                     return;
                 }
                 case WsData::OpCodes::UNSUBSCRIBE: {
@@ -155,6 +167,7 @@ namespace TradingEngine {
                         sit->second.pop_back();
                     }
 
+                    Ack(conn, WsData::OpCodes::SUCCESS);
                     return;
                 }
                 default: {

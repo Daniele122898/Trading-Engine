@@ -12,6 +12,8 @@ namespace TradingEngine::WsData {
         LOGIN,
         SUBSCRIBE,
         UNSUBSCRIBE,
+        READY,
+        SUCCESS,
         ERROR
     };
 
@@ -20,6 +22,11 @@ namespace TradingEngine::WsData {
         nlohmann::json payload;
     };
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Payload, opcode, payload);
+
+    struct Ack {
+        OpCodes opcode;
+    };
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Ack, opcode);
 
     enum class ErrorCodes {
         INVALID_FORMAT,
