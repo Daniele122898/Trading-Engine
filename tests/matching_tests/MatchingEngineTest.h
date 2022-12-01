@@ -10,6 +10,7 @@
 #include "gtest/gtest.h"
 #include <LogOrderReporter.h>
 #include <ThreadedLogReporter.h>
+#include "MockReporter.h"
 
 class MatchingEngineTest : public ::testing::Test {
 protected:
@@ -23,14 +24,14 @@ protected:
         // fill out order book a little bit
         for (int i = 0; i < 10; ++i) {
             Order order{
-                static_cast<uint64_t>(i),
-                0,
-                symbol.Id,
-                OrderType::LIMIT,
-                TradingEngine::Data::OrderSide::BUY,
-                TradingEngine::Data::OrderLifetime::GFD,
-                (i+1)*5,
-                10};
+                    static_cast<uint64_t>(i),
+                    0,
+                    symbol.Id,
+                    OrderType::LIMIT,
+                    TradingEngine::Data::OrderSide::BUY,
+                    TradingEngine::Data::OrderLifetime::GFD,
+                    (i + 1) * 5,
+                    10};
             if (i >= 5)
                 order.Side = TradingEngine::Data::OrderSide::SELL;
 
@@ -41,10 +42,11 @@ protected:
     }
 
 
-
-    TradingEngine::Matching::MatchingEngine<TradingEngine::Matching::ThreadedLogOrderReporter>
+    TradingEngine::Matching::MatchingEngine<TradingEngine::Matching::ThreadedLogOrderReporter, MockReporter, MockReporter>
             m_engine{TradingEngine::Matching::MatchReporter(
-                    std::make_unique<TradingEngine::Matching::ThreadedLogOrderReporter>())};
+            std::make_unique<TradingEngine::Matching::ThreadedLogOrderReporter>(),
+            std::make_unique<MockReporter>(),
+            std::make_shared<MockReporter>())};
 
 };
 
