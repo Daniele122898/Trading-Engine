@@ -15,6 +15,7 @@
 #include "db/db.h"
 #include "db/fill_persistence.h"
 #include "Broadcaster.h"
+#include "Ratelimiter.h"
 
 #include "enc.h"
 
@@ -90,7 +91,9 @@ int main() {
 //    std::atomic<uint64_t> nextOrderId{++lastOrderId};
     std::unordered_map<std::string, uint64_t> users{};
 
-    auto broadcaster = std::make_shared<Broadcaster>(users);
+    auto ratelimiter = Ratelimiter();
+
+    auto broadcaster = std::make_shared<Broadcaster>(users, ratelimiter);
 
     Matching::MatchingEngine<Matching::ThreadedLogOrderReporter, Db::FillPersistence, Broadcaster> engine{
             Matching::MatchReporter(
@@ -126,6 +129,10 @@ int main() {
 
 #define EMPTY_BODY(req) if (req.body.empty()) { \
     return crow::response{400}; \
+}
+
+#define RATELIMITED(routeType, userId) if (ratelimiter.IsRatelimited(routeType, userId)) { \
+    return crow::response{crow::status::TOO_MANY_REQUESTS};\
 }
 
     CROW_ROUTE(app, "/ws")
@@ -231,9 +238,10 @@ int main() {
         return crow::response{crow::OK};
     });
 
-    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster](const crow::request &req) {
+    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
+        RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
 
         try {
             auto json = nlohmann::json::parse(req.body);
@@ -262,8 +270,9 @@ int main() {
         return crow::response{crow::status::OK};
     });
 
-    CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine, &users](const crow::request &req) {
+    CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine, &users, &ratelimiter](const crow::request &req) {
         AUTHENTICATE(req);
+        RATELIMITED(BUCKET_TYPE::LISTS, userId);
 
         auto symbols = engine.Symbols();
         std::vector<SymbolDto> symbolsDto{};
@@ -277,8 +286,9 @@ int main() {
         return crow::response{VectorReturnable{std::move(symbolsDto), "symbols"}};
     });
 
-    CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine, &users](const crow::request &req, unsigned int symbolId) {
+    CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine, &users, &ratelimiter](const crow::request &req, unsigned int symbolId) {
         AUTHENTICATE(req);
+        RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
 
         auto symbol = engine.Symbol(symbolId);
         if (symbol == nullptr) {
@@ -287,8 +297,9 @@ int main() {
         return crow::response{SymbolDto{*symbol}};
     });
 
-    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([&engine, &users](const crow::request &req, unsigned int orderBookId) {
+    CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([&engine, &users, &ratelimiter](const crow::request &req, unsigned int orderBookId) {
         AUTHENTICATE(req);
+        RATELIMITED(BUCKET_TYPE::ORDER_BOOK, userId);
 
         Data::OrderBook const *book = engine.OrderBook(orderBookId);
         if (book == nullptr) {
@@ -297,9 +308,10 @@ int main() {
         return crow::response{OrderBookDto{book}};
     });
 
-    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users, &broadcaster](const crow::request &req) {
+    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
+        RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
 
         try {
             auto json = nlohmann::json::parse(req.body);

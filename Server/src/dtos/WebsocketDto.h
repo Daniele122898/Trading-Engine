@@ -38,7 +38,8 @@ namespace TradingEngine::WsData {
         INVALID_FORMAT,
         INVALID_JSON,
         UNAUTHORIZED,
-        NOT_FOUND
+        NOT_FOUND,
+        RATELIMITED
     };
 
     struct Error {

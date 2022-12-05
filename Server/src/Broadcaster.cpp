@@ -37,6 +37,16 @@ namespace TradingEngine {
         return true;
     }
 
+    inline bool IsRatelimited(crow::websocket::connection &conn, Ratelimiter& ratelimiter) {
+        auto userId = (uint64_t) conn.userdata();
+        if (ratelimiter.IsRatelimited(BUCKET_TYPE::SIMPLE, userId)) {
+            RespondError(conn, WsData::ErrorCodes::RATELIMITED,
+                         "You have sent too many requests!");
+            return true;
+        }
+        return false;
+    }
+
     void Broadcaster::ReportOrderCreation(const Data::Order &order) {
         m_creations.enqueue({order.Id, order.Price, order.SymbolId, order.InitialQuantity, order.Type, order.Side});
     }
@@ -127,6 +137,9 @@ namespace TradingEngine {
                     if (!IsLoggedIn(conn, m_users))
                         return;
 
+                    if (IsRatelimited(conn, m_ratelimiter))
+                        return;
+
                     WsData::SubSymbol sub = request.payload.get<WsData::SubSymbol>();
                     std::lock_guard<std::mutex> _(m_mtx);
                     // check if sIds exist
@@ -158,6 +171,9 @@ namespace TradingEngine {
                 case WsData::OpCodes::UNSUBSCRIBE: {
                     CORE_TRACE("WS RECEIVED UNSUBSCRIBE REQUEST");
                     if (!IsLoggedIn(conn, m_users))
+                        return;
+
+                    if (IsRatelimited(conn, m_ratelimiter))
                         return;
 
                     std::lock_guard<std::mutex> _(m_mtx);
