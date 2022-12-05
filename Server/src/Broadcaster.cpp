@@ -77,9 +77,20 @@ namespace TradingEngine {
         CORE_TRACE("Closed Websocket connection from {} because of {}", conn.get_remote_ip(), reason);
         std::lock_guard<std::mutex> _(m_mtx);
         uint64_t userId = (uint64_t) conn.userdata();
-        m_connections.erase(&conn);
         m_users.erase(userId);
-        // TODO remove from symbols map!!!!!!
+        auto u = m_connections.find(&conn);
+        for (auto sid: u->second) {
+            // remove ws from symbol list
+            auto sit = m_symbolsToUsers.find(sid);
+            auto wsconn = std::find(sit->second.begin(), sit->second.end(), &conn);
+
+            auto wsend = --sit->second.end();
+            crow::websocket::connection *wstemp = *wsend;
+            *wsend = *wsconn;
+            *wsconn = wstemp;
+            sit->second.pop_back();
+        }
+        m_connections.erase(&conn);
     }
 
     void Broadcaster::OnMessage(crow::websocket::connection &conn, const std::string &data, bool is_binary) {
