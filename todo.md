@@ -1,5 +1,4 @@
 # TODO
-- [ ] Ratelimit
 - [ ] Expiry of orders
 - [ ] end of trading day
 - [ ] Money / Economy
@@ -7,5 +6,6 @@
 
 
 # Done
+- [x] Ratelimit
 - [x] WebSocket
 - [x] broadcast creation of orders

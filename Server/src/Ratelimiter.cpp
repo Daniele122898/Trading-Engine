@@ -17,18 +17,20 @@ namespace TradingEngine {
             rt[userId] = std::chrono::system_clock::now();
             return false;
         }
-        if (it->second > maxReq) return true;
+
+        // Calculate the time until the rate limit is reset for this user
+        auto now = std::chrono::system_clock::now();
+        auto resetTime = rt[userId] + m_interval;
+        if (now >= resetTime) {
+            rt[userId] = now;
+            rc[userId] = 1;
+            return false;
+        }
 
         // Increment the request count for this user
         ++rc[userId];
 
-        // Calculate the time until the rate limit is reset for this user
-        auto now = std::chrono::system_clock::now();
-        auto resetTime = rt[userId] + std::chrono::seconds(m_interval);
-        if (now >= resetTime) {
-            rt[userId] = now;
-            rc[userId] = 0;
-        }
+        if (it->second > maxReq) return true;
 
         // Return true if the request is allowed
         return false;
