@@ -23,13 +23,13 @@ namespace TradingEngine {
     public:
         Ratelimiter() {
             m_maxRequests.reserve(3);
-            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::SIMPLE)] = 5;
-            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::ORDER_BOOK)] = 1;
-            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::LISTS)] = 2;
-//
-//            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::SIMPLE)] = 50;
-//            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::ORDER_BOOK)] = 10;
-//            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::LISTS)] = 25;
+//            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::SIMPLE)] = 5;
+//            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::ORDER_BOOK)] = 1;
+//            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::LISTS)] = 2;
+
+            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::SIMPLE)] = 50;
+            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::ORDER_BOOK)] = 10;
+            m_maxRequests[static_cast<uint8_t>(BUCKET_TYPE::LISTS)] = 25;
 
             m_requestCounts.emplace_back();
             m_requestCounts.emplace_back();

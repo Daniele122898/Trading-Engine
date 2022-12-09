@@ -16,7 +16,7 @@ namespace TradingEngine::Db {
 
     class Database {
     public:
-        explicit Database(std::string connectionString): m_conn{connectionString} {};
+        explicit Database(std::string connectionString) : m_conn{connectionString} {};
 
         void CreateTablesIfNotExist() {
             try {
@@ -97,13 +97,51 @@ namespace TradingEngine::Db {
             }
         }
 
+        std::vector<uint64_t> GetExpiredOrders() {
+            pqxx::work txn{m_conn};
+            pqxx::result r{txn.exec("SELECT id FROM public.orders WHERE "
+                                    "lifetime = 0 OR (lifetime = 1 AND expiry <= CURRENT_DATE)")};
+            std::vector<uint64_t> orderIds{};
+            orderIds.reserve(r.size());
+            for (auto row: r) {
+                orderIds.emplace_back(row[0].as<uint64_t>());
+            }
+
+            txn.commit();
+            return orderIds;
+        }
+
+        std::vector<Data::Order> GetOrders() {
+            pqxx::work txn{m_conn};
+            pqxx::result r{txn.exec(
+                    "SELECT id, userid, symbolid, type, side, "
+                    "lifetime, price, initialq, currentq, extract(epoch from expiry) as expiry, "
+                    "round(extract(epoch from creation)) as creation FROM public.orders")};
+            std::vector<Data::Order> orders{};
+            orders.reserve(r.size());
+
+            for (auto row: r) {
+                orders.emplace_back(row[0].as<uint64_t>(), row[1].as<uint64_t>(),
+                                    row[2].as<uint32_t>(),
+                                    static_cast<Data::OrderType>(row[3].as<int>()),
+                                    static_cast<Data::OrderSide>(row[4].as<int>()),
+                                    static_cast<Data::OrderLifetime>(row[5].as<int>()),
+                                    row[6].as<int64_t>(), row[7].as<uint32_t>(),
+                                    row[8].as<uint32_t>(), std::chrono::milliseconds(row[9].as<uint64_t>()),
+                                    std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::seconds{row[10].as<uint64_t>()}});
+            }
+
+            txn.commit();
+            return orders;
+        }
+
         std::vector<TradingEngine::Data::Symbol> GetSymbols() {
             pqxx::work txn{m_conn};
             pqxx::result r{txn.exec("SELECT id, ticker FROM public.symbols")};
             std::vector<Data::Symbol> symbols{};
             symbols.reserve(r.size());
 
-            for (auto row : r) {
+            for (auto row: r) {
                 symbols.emplace_back(row[0].as<uint32_t>(), row[1].as<std::string>());
             }
 
@@ -111,7 +149,7 @@ namespace TradingEngine::Db {
             return symbols;
         }
 
-        uint32_t AddSymbol(const std::string& ticker) {
+        uint32_t AddSymbol(const std::string &ticker) {
             pqxx::work txn{m_conn};
             txn.exec0("INSERT INTO public.symbols(ticker) "
                       "VALUES ('" + ticker + "')");
@@ -133,23 +171,23 @@ namespace TradingEngine::Db {
             return lastOrderId;
         }
 
-        uint64_t AddOrder(Data::Order const & order) {
+        uint64_t AddOrder(Data::Order const &order) {
             pqxx::work txn{m_conn};
             std::stringstream query;
             query << "INSERT INTO public.orders(userid, symbolid, type, side, "
-                << "lifetime, price, initialq, currentq, expiry, creation) "
-                << "VALUES ("
-                << order.UserId << ", "
-                << order.SymbolId << ", "
-                << static_cast<int>(order.Type) << ", "
-                << static_cast<int>(order.Side) << ", "
-                << static_cast<int>(order.Lifetime) << ", "
-                << order.Price << ", "
-                << order.InitialQuantity << ", "
-                << order.CurrentQuantity << ", "
-                << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
-                << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << ") "
-                << ")";
+                  << "lifetime, price, initialq, currentq, expiry, creation) "
+                  << "VALUES ("
+                  << order.UserId << ", "
+                  << order.SymbolId << ", "
+                  << static_cast<int>(order.Type) << ", "
+                  << static_cast<int>(order.Side) << ", "
+                  << static_cast<int>(order.Lifetime) << ", "
+                  << order.Price << ", "
+                  << order.InitialQuantity << ", "
+                  << order.CurrentQuantity << ", "
+                  << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
+                  << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << ") "
+                  << ")";
             txn.exec0(query.str());
 
             uint64_t currOrderId = txn.query_value<uint64_t>(
@@ -160,7 +198,7 @@ namespace TradingEngine::Db {
             return currOrderId;
         }
 
-        void AddFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason) {
+        void AddFill(Data::Order const &order, Data::Order const &counterOrder, Data::FillReason reason) {
             pqxx::work txn{m_conn};
 
             // if this fails, we'll fail the entire transaction
@@ -196,7 +234,7 @@ namespace TradingEngine::Db {
             txn.commit();
         }
 
-        bool TryGetUserId(std::string & apikey, uint64_t& id) {
+        bool TryGetUserId(std::string &apikey, uint64_t &id) {
             pqxx::work txn{m_conn};
             pqxx::result r{txn.exec("SELECT id FROM public.users WHERE apikey = " + m_conn.quote(apikey))};
             if (r.empty())
@@ -208,9 +246,11 @@ namespace TradingEngine::Db {
             return true;
         }
 
-        bool TryGetUser(std::string & username, uint64_t& id, std::basic_string<std::byte>& password, std::basic_string<std::byte>& salt, std::string& apikey) {
+        bool TryGetUser(std::string &username, uint64_t &id, std::basic_string<std::byte> &password,
+                        std::basic_string<std::byte> &salt, std::string &apikey) {
             pqxx::work txn{m_conn};
-            pqxx::result r{txn.exec("SELECT id, password, salt, apikey FROM public.users WHERE username = " + m_conn.quote(username))};
+            pqxx::result r{txn.exec(
+                    "SELECT id, password, salt, apikey FROM public.users WHERE username = " + m_conn.quote(username))};
             if (r.empty())
                 return false;
 
@@ -224,12 +264,13 @@ namespace TradingEngine::Db {
             return true;
         }
 
-        uint64_t AddUser(std::string username, std::string email, unsigned char* pwhash, unsigned char* salt, unsigned char* apikey) {
+        uint64_t AddUser(std::string username, std::string email, unsigned char *pwhash, unsigned char *salt,
+                         unsigned char *apikey) {
             pqxx::work txn{m_conn};
 
-            std::string password(reinterpret_cast<char*>(pwhash), 32);
-            std::string saltstr(reinterpret_cast<char*>(salt), 32);
-            std::string apikeystr(reinterpret_cast<char*>(apikey), 32);
+            std::string password(reinterpret_cast<char *>(pwhash), 32);
+            std::string saltstr(reinterpret_cast<char *>(salt), 32);
+            std::string apikeystr(reinterpret_cast<char *>(apikey), 32);
 
             std::stringstream query;
             query << "INSERT INTO public.users(username, email, password, salt, apikey) VALUES ("

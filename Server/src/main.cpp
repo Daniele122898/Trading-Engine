@@ -16,6 +16,8 @@
 #include "db/fill_persistence.h"
 #include "Broadcaster.h"
 #include "Ratelimiter.h"
+#include "EODHandler.h"
+#include "tm.h"
 
 #include "enc.h"
 
@@ -35,9 +37,7 @@ namespace TradingEngine::Data {
 
         if (order.Lifetime == OrderLifetime::GTD) {
             auto days = json.at("daysToExpiry").get<int32_t>();
-            if (days == 1) {
-                order.Lifetime = OrderLifetime::GFD;
-            } else if (days <= 0) {
+            if (days <= 0) {
                 throw nlohmann::json::parse_error::create(105, 0, "Invalid amount of days", &json);
             } else {
                 auto currently = std::chrono::time_point_cast<std::chrono::milliseconds>(
@@ -82,7 +82,8 @@ int main() {
     std::cout << std::chrono::system_clock::to_time_t(currently) << std::endl;
     std::chrono::duration millis_since_utc_epoch = currently.time_since_epoch();
 
-    TradingEngine::Db::Database db{"postgres://postgres:test123@localhost:5432/trading_test"};
+    std::string dbConnectionString = "postgres://postgres:test123@localhost:5432/trading_test";
+    TradingEngine::Db::Database db{dbConnectionString};
     db.CreateTablesIfNotExist();
 
 //    uint64_t lastOrderId = db.LastUsedOrderId();
@@ -90,6 +91,7 @@ int main() {
 
 //    std::atomic<uint64_t> nextOrderId{++lastOrderId};
     std::unordered_map<std::string, uint64_t> users{};
+
 
     auto ratelimiter = Ratelimiter();
 
@@ -101,7 +103,6 @@ int main() {
                     std::make_unique<Db::FillPersistence>(db),
                             broadcaster)};
 
-
     auto symbols = db.GetSymbols();
     for (auto &symb: symbols) {
         CORE_TRACE("Adding symbol {} {}", symb.Id, symb.Ticker);
@@ -110,7 +111,15 @@ int main() {
     }
 
     // TODO LOAD ORDERS ON STARTUP
+    auto orders = db.GetOrders();
+    for (auto& order: orders) {
+        engine.AddNonMatchOrder(order);
+    }
 
+
+    auto eodhandler = EODHandler(dbConnectionString, [&engine] (uint64_t orderId) {
+        return engine.RemoveOrder(orderId);
+    });
 
     crow::SimpleApp app;
 
@@ -238,6 +247,7 @@ int main() {
         return crow::response{crow::OK};
     });
 
+    // TODO LIMIT TO ONLY ADMINS
     CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
@@ -313,12 +323,20 @@ int main() {
         EMPTY_BODY(req);
         RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
 
+        // Check if end of trading day
+        auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now()
+        );
+        const auto eod = Util::GetPointInToday(now, 23,0,0);
+        if (now >= eod) {
+            // stop trading
+            return crow::response{425, "End of Trading day. Restarts at beginning of next day."};
+        }
+
         try {
             auto json = nlohmann::json::parse(req.body);
             auto order = json.get<Data::Order>();
-            order.CreationTp = std::chrono::time_point_cast<std::chrono::milliseconds>(
-                    std::chrono::system_clock::now()
-            );
+            order.CreationTp = now;
             // TODO move to seperate thread
             auto id = db.AddOrder(order);
             order.Id = id;

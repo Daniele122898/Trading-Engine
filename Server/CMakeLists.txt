@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16.3)
 set(CMAKE_TOOLCHAIN_FILE "C:/Code/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 project(Server)
 
+set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 
 # Get recursively all .cpp and .hpp files in src subdir

@@ -23,6 +23,32 @@ namespace TradingEngine::Matching {
         explicit MatchingEngine(MatchReporter<Logger, Persistence, Broadcaster> reporter) :
                 m_reporter{std::move(reporter)} {}
 
+        Data::Order RemoveOrder(uint64_t id) {
+            auto it = m_orders.find(id);
+            if (it == m_orders.end())
+                throw std::runtime_error("Couldn't find Order with ID: " + std::to_string(id));
+
+            auto order = it->second;
+            auto obIt = m_orderBooks.find(order.SymbolId);
+            obIt->second.RemoveOrder(order.Id);
+            m_orders.erase(order.Id);
+            return order;
+        }
+
+        void AddNonMatchOrder(Data::Order& order) {
+            CORE_TRACE("Adding Order: {}", order);
+            auto obIt = m_orderBooks.find(order.SymbolId);
+            if (obIt == m_orderBooks.end()) {
+                return;
+            }
+
+            auto &ob = obIt->second;
+
+            // Order has not been fully filled, thus place it.
+            m_orders[order.Id] = order;
+            ob.AddOrder(m_orders.at(order.Id));
+        }
+
         void AddOrder(Data::Order &order) {
             CORE_TRACE("Received Order: {}", order);
             auto obIt = m_orderBooks.find(order.SymbolId);
@@ -190,7 +216,8 @@ namespace TradingEngine::Matching {
 
                 if (o.CurrentQuantity == 0) {
                     m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
-                    level->RemoveOrder(node);
+//                    level->RemoveOrder(node);
+                    RemoveOrder(o.Id);
                 }
             }
         }
@@ -248,7 +275,8 @@ namespace TradingEngine::Matching {
 
                     if (o.CurrentQuantity == 0) {
                         m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
-                        level.RemoveOrder(curr);
+//                        level.RemoveOrder(curr);
+                        RemoveOrder(o.Id);
                     }
                     curr = next;
 

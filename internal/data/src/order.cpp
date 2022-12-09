@@ -11,6 +11,15 @@ namespace TradingEngine::Data {
                  Id{id}, UserId{userId}, SymbolId{symbolId}, Type{type}, Side{side}, Lifetime{lifetime}, Price{price}, InitialQuantity{initialQuantity}, CurrentQuantity{initialQuantity} {
     }
 
+    Order::Order(uint64_t id, uint64_t userId, uint32_t symbolId, OrderType type, OrderSide side, OrderLifetime lifetime,
+                 int64_t price, uint32_t initialQuantity, uint32_t currentQuantity,
+                 std::chrono::milliseconds expiryMs,
+                 std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> creationTp) :
+            Id{id}, UserId{userId}, SymbolId{symbolId}, Type{type},
+            Side{side}, Lifetime{lifetime}, Price{price}, InitialQuantity{initialQuantity},
+            CurrentQuantity{currentQuantity}, ExpiryMs{expiryMs}, CreationTp{creationTp} {
+    }
+
     std::ostream& operator<<(std::ostream& str, const OrderLifetime& lifetime) {
         switch (lifetime) {
             case OrderLifetime::GFD:

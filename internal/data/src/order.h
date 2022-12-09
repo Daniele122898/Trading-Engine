@@ -74,6 +74,18 @@ namespace TradingEngine::Data {
               int64_t price,
               uint32_t initialQuantity);
 
+        Order(uint64_t id,
+              uint64_t userId,
+              uint32_t symbolId,
+              OrderType type,
+              OrderSide side,
+              OrderLifetime lifetime,
+              int64_t price,
+              uint32_t initialQuantity,
+              uint32_t currentQuantity,
+              std::chrono::milliseconds expiryMs,
+              std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> creationTp);
+
     };
 
     std::ostream& operator<<(std::ostream& str, const OrderLifetime& lifetime);
