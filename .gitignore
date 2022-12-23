@@ -4,3 +4,4 @@ out/
 .vs/
 /**/cmake-build-debug-wsl/
 .cache/
+compile_commands.json
