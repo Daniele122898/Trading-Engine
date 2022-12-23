@@ -5,8 +5,10 @@
 #ifndef TRADINGENGINE_MATCHINGENGINE_H
 #define TRADINGENGINE_MATCHINGENGINE_H
 
+#include <cstdint>
 #include <vector>
 #include <unordered_map>
+#include <optional>
 
 #include "symbol.h"
 #include "order_book.h"
@@ -22,6 +24,16 @@ namespace TradingEngine::Matching {
 
         explicit MatchingEngine(MatchReporter<Logger, Persistence, Broadcaster> reporter) :
                 m_reporter{std::move(reporter)} {}
+
+
+        std::optional<Data::Order> FindOrder(uint64_t id) {
+            auto it = m_orders.find(id); 
+            if (it == m_orders.end()) {
+                return std::nullopt;
+            }
+
+            return it->second;
+        }
 
         Data::Order RemoveOrder(uint64_t id) {
             auto it = m_orders.find(id);
