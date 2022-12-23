@@ -1,5 +1,4 @@
 # TODO
-- [ ] Allow for modifications of orders
 - [ ] Make Symbol modification admin only
 - [ ] Money / Economy
 - [ ] Liquidity Bots
@@ -12,3 +11,6 @@
 - [x] Ratelimit
 - [x] WebSocket
 - [x] broadcast creation of orders
+
+# Postponed
+- [ ] Allow for modifications of orders
