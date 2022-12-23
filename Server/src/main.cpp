@@ -253,7 +253,10 @@ int main() {
         CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
             AUTHENTICATE(req);
             EMPTY_BODY(req);
-            RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
+
+            if (userId != 1) {
+                return crow::response(crow::status::FORBIDDEN);
+            }
 
             try {
                 auto json = nlohmann::json::parse(req.body);
