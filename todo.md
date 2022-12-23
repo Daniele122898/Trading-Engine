@@ -1,4 +1,5 @@
 # TODO
+- [ ] Partially filled orders change current quantity on startup
 - [ ] Money / Economy
 - [ ] Liquidity Bots
 
