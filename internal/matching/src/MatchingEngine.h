@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <optional>
 
+#include "order.h"
 #include "symbol.h"
 #include "order_book.h"
 #include "not_implemented_exception.h"
@@ -33,6 +34,10 @@ namespace TradingEngine::Matching {
             }
 
             return it->second;
+        }
+        
+        void CreateReport(Data::Order order, Data::FillReason reason) {
+            m_reporter.ReportOrderFill(order, order, reason);
         }
 
         Data::Order RemoveOrder(uint64_t id) {

@@ -17,6 +17,7 @@
 #include "Broadcaster.h"
 #include "Ratelimiter.h"
 #include "EODHandler.h"
+#include "order.h"
 #include "tm.h"
 
 #include "enc.h"
@@ -321,7 +322,6 @@ int main() {
 
         CROW_ROUTE(app, "/order/<uint>").methods("DELETE"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req, unsigned int orderId) {
             AUTHENTICATE(req);
-            EMPTY_BODY(req);
             RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
 
             // check if order exists and belongs to us
@@ -334,11 +334,13 @@ int main() {
             }
             
             // remove order
+            engine.RemoveOrder(orderId);
+            engine.CreateReport(order.value(), Data::FillReason::CANCELLED);
 
             return crow::response{crow::status::OK};
         });
 
-        CROW_ROUTE(app, "/order/<uint>").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
+        CROW_ROUTE(app, "/order/<uint>").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req, unsigned int orderId) {
             AUTHENTICATE(req);
             EMPTY_BODY(req);
             RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
@@ -376,9 +378,9 @@ int main() {
             auto order = json.get<Data::Order>();
             order.CreationTp = now;
             // TODO move to seperate thread
+            order.UserId = userId;
             auto id = db.AddOrder(order);
             order.Id = id;
-            order.UserId = userId;
             CORE_TRACE("ADDED ORDER WITH ID {}", id);
 //            nextOrderId.store(++id);
             broadcaster->ReportOrderCreation(order);
