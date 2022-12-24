@@ -6,6 +6,7 @@
 #define TRADINGENGINE_FILLPERSISTENCE_H
 
 #include "db.h"
+#include <cstdint>
 
 namespace TradingEngine::Db {
 
@@ -13,6 +14,10 @@ namespace TradingEngine::Db {
     class FillPersistence {
     public:
         explicit FillPersistence(Database& db): m_database{db} {}
+
+        void UpdateOrderQuantity(Data::Order const & order, uint32_t newQuant) {
+            m_database.UpdateOrder(order, newQuant);
+        }
 
         void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0) {
             m_database.AddFill(order, counterOrder, reason);

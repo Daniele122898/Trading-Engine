@@ -94,7 +94,6 @@ int main() {
     //    std::atomic<uint64_t> nextOrderId{++lastOrderId};
         std::unordered_map<std::string, uint64_t> users{};
 
-
         auto ratelimiter = Ratelimiter();
 
         auto broadcaster = std::make_shared<Broadcaster>(users, ratelimiter);
@@ -427,6 +426,9 @@ int main() {
 //            nextOrderId.store(++id);
             broadcaster->ReportOrderCreation(order);
             engine.AddOrder(order);
+
+            // TODO: Fix this temporary mess
+            return crow::response{crow::status::OK, std::to_string(order.Id)};
         }
         catch (pqxx::sql_error const &e) {
             CORE_ERROR("SQL ERROR: {}", e.what());
@@ -442,7 +444,6 @@ int main() {
             return crow::response{crow::status::BAD_REQUEST};
         }
 
-        return crow::response{crow::status::OK};
     });
 
     CORE_TRACE("Starting Server on port 18080");

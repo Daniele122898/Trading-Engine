@@ -198,6 +198,16 @@ namespace TradingEngine::Db {
             return currOrderId;
         }
 
+        void UpdateOrder(Data::Order const & order, uint32_t newQuant) {
+            pqxx::work txn{m_conn};
+
+            // if this fails, we'll fail the entire transaction
+            txn.exec0("UPDATE public.orders SET currentq=" + std::to_string(newQuant) + "WHERE id=" + std::to_string(order.Id));
+            txn.commit();
+
+            return;
+        }
+
         void AddFill(Data::Order const &order, Data::Order const &counterOrder, Data::FillReason reason) {
             pqxx::work txn{m_conn};
 

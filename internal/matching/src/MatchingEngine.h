@@ -79,6 +79,7 @@ namespace TradingEngine::Matching {
             bool finishedMatch = Match(order, ob);
             ob.ClearEmptyLevels();
             if (finishedMatch) {
+                m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
                 return;
             }
 
@@ -202,6 +203,7 @@ namespace TradingEngine::Matching {
             if (currQ > 0) {
                 // We can't fill, CANCEL!
                 CORE_TRACE("Cant Fill FOK, CANCEL! Leftover: {}", currQ);
+                m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
                 return;
             }
 
@@ -235,7 +237,10 @@ namespace TradingEngine::Matching {
                     m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
 //                    level->RemoveOrder(node);
                     RemoveOrder(o.Id);
+                } else {
+                    m_reporter.UpdateOrder(o, o.CurrentQuantity);
                 }
+
             }
         }
 
@@ -294,6 +299,8 @@ namespace TradingEngine::Matching {
                         m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
 //                        level.RemoveOrder(curr);
                         RemoveOrder(o.Id);
+                    } else {
+                        m_reporter.UpdateOrder(o, o.CurrentQuantity);
                     }
                     curr = next;
 
@@ -306,6 +313,7 @@ namespace TradingEngine::Matching {
 
             if (order.CurrentQuantity > 0) {
                 CORE_TRACE("Order with id {} could not be filled fully", order.Id);
+                m_reporter.UpdateOrder(order, order.CurrentQuantity);
                 return false;
             }
             return true;
