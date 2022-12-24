@@ -343,62 +343,6 @@ int main() {
             return crow::response{crow::status::OK};
         });
 
-    //     CROW_ROUTE(app, "/order/<uint>").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req, unsigned int orderId) {
-    //         AUTHENTICATE(req);
-    //         EMPTY_BODY(req);
-    //         RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
-    //
-    //         // Check if end of trading day
-    //         auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(
-    //                 std::chrono::system_clock::now()
-    //                 );
-    //         const auto eod = Util::GetPointInToday(now, 23,0,0);
-    //         if (now >= eod) {
-    //             // stop trading
-    //             return crow::response{425, "End of Trading day. Restarts at beginning of next day."};
-    //         }
-    //
-    //         // check if order exists and belongs to us
-    //         auto order = engine.FindOrder(orderId); 
-    //         if (!order) {
-    //             return crow::response(404, "Order Not Found");
-    //         }
-    //         if (order->UserId != userId) {
-    //             return crow::response(crow::status::FORBIDDEN, "Not your order");
-    //         }
-    //
-    //         try {
-    //             auto json = nlohmann::json::parse(req.body);
-    //             int64_t newPrice = json["price"];
-    //             uint32_t newQuant = json["quant"];
-    //             if (newQuant <= 0) {
-    //                 return crow::response(crow::status::BAD_REQUEST, "Quantity cannot be 0 or negative");
-    //             }
-    //             engine.RemoveOrder(orderId);
-    //             // broadcast order update
-    //             // re-add order to engine
-    //             order->Price = newPrice;
-    //             // TODO: Test this
-    //             order->InitialQuantity = newQuant;
-    //             order->CurrentQuantity = newQuant;
-    //         }
-    //         catch (pqxx::sql_error const &e) {
-    //             CORE_ERROR("SQL ERROR: {}", e.what());
-    //             CORE_ERROR("QUERY: {}", e.query());
-    //             return crow::response{crow::status::BAD_REQUEST, "Misformed order entry"};
-    //         }
-    //         catch (nlohmann::json::parse_error &ex) {
-    //             CORE_ERROR("FAILED TO PARSE JSON {}\n at byte {}\n{}", req.body, ex.byte, ex.what());
-    //             return crow::response{crow::status::BAD_REQUEST, "Bad JSON"};
-    //         }
-    //         catch (std::exception const &e) {
-    //             CORE_ERROR("ERROR: {}", e.what());
-    //             return crow::response{crow::status::BAD_REQUEST};
-    //         }
-    //
-    //     return crow::response{crow::status::OK};
-    // });
-
     CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
