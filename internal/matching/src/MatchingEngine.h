@@ -80,7 +80,6 @@ namespace TradingEngine::Matching {
             ob.ClearEmptyLevels();
             if (finishedMatch) {
                 CORE_TRACE("FINISHED MATCH, REPORT CANCELLATION");
-                m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
                 return;
             }
 
@@ -129,8 +128,10 @@ namespace TradingEngine::Matching {
     private:
         bool Match(Data::Order &order, Data::OrderBook &book) {
             switch (order.Type) {
-                case Data::OrderType::MARKET:
-                    MatchMarket(order, book);
+                case Data::OrderType::MARKET: 
+                    if (!MatchMarket(order, book)) {
+                        m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
+                    }
                     return true;
                 case Data::OrderType::LIMIT:
                     return MatchIOC(order, book);
@@ -138,7 +139,9 @@ namespace TradingEngine::Matching {
                     MatchFOK(order, book);
                     return true;
                 case Data::OrderType::IOC:
-                    MatchIOC(order, book);
+                    if (!MatchIOC(order, book)) {
+                        m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
+                    }
                     return true;
                 case Data::OrderType::STOP_MARKET:
                     throw Util::not_implemented_exception();
