@@ -1,5 +1,5 @@
 # TODO
-- [ ] Money / Economy
+- [ ] Money / Economy / Position Limits
 - [ ] Liquidity Bots
 
 
