@@ -79,6 +79,7 @@ namespace TradingEngine::Matching {
             bool finishedMatch = Match(order, ob);
             ob.ClearEmptyLevels();
             if (finishedMatch) {
+                CORE_TRACE("FINISHED MATCH, REPORT CANCELLATION");
                 m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
                 return;
             }

@@ -202,7 +202,7 @@ namespace TradingEngine::Db {
             pqxx::work txn{m_conn};
 
             // if this fails, we'll fail the entire transaction
-            txn.exec0("UPDATE public.orders SET currentq=" + std::to_string(newQuant) + "WHERE id=" + std::to_string(order.Id));
+            txn.exec0("UPDATE public.orders SET currentq=" + std::to_string(newQuant) + " WHERE id=" + std::to_string(order.Id));
             txn.commit();
 
             return;
