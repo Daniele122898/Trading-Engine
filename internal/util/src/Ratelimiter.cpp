@@ -4,7 +4,7 @@
 
 #include "Ratelimiter.h"
 
-namespace TradingEngine {
+namespace TradingEngine::Util {
     // TODO think about the locking
     bool Ratelimiter::IsRatelimited(BUCKET_TYPE type, uint64_t userId) {
         // Check if the rate limit has been exceeded for this user

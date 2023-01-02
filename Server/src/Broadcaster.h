@@ -19,7 +19,7 @@ namespace TradingEngine {
     class Broadcaster {
 
     public:
-        explicit Broadcaster(std::unordered_map<std::string, uint64_t> &apiKeys, Ratelimiter &ratelimiter) :
+        explicit Broadcaster(std::unordered_map<std::string, uint64_t> &apiKeys, Util::Ratelimiter &ratelimiter) :
                 m_apiKeys{apiKeys}, m_ratelimiter{ratelimiter} {
             m_thread = std::thread([this]() {
                 BroadcastingLoop();
@@ -73,7 +73,7 @@ namespace TradingEngine {
         std::thread m_thread;
         bool m_running = true;
 
-        Ratelimiter& m_ratelimiter;
+        Util::Ratelimiter& m_ratelimiter;
     };
 
 } // TradingEngine

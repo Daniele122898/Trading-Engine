@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <chrono>
 
-namespace TradingEngine {
+namespace TradingEngine::Util {
 
     // TODO: maybe we need smth for get vs post
     enum class BUCKET_TYPE {

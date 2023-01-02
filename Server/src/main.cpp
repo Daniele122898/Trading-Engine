@@ -94,7 +94,7 @@ int main() {
     //    std::atomic<uint64_t> nextOrderId{++lastOrderId};
         std::unordered_map<std::string, uint64_t> users{};
 
-        auto ratelimiter = Ratelimiter();
+        auto ratelimiter = Util::Ratelimiter();
 
         auto broadcaster = std::make_shared<Broadcaster>(users, ratelimiter);
 
@@ -187,7 +187,7 @@ int main() {
                     if (!db.TryGetUser(username, userId, passhash, salt, apikey)) {
                         return crow::response{crow::BAD_REQUEST};
                     }
-                    if (!sha256_match(passhash, salt, password)) {
+                    if (!Util::sha256_match(passhash, salt, password)) {
                         return crow::response{crow::BAD_REQUEST};
                     }
 
@@ -227,8 +227,8 @@ int main() {
                 unsigned char hash[32];
                 unsigned char salt[32];
                 unsigned char apikey[32];
-                sha256_salted(password, hash, salt);
-                get_rand(apikey, 32);
+                Util::sha256_salted(password, hash, salt);
+                Util::get_rand(apikey, 32);
                 auto userid = db.AddUser(username, email, hash, salt, apikey);
             }
             catch (pqxx::sql_error const &e) {
@@ -249,7 +249,7 @@ int main() {
         });
 
         // TODO LIMIT TO ONLY ADMINS
-        CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
+        CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster](const crow::request &req) {
             AUTHENTICATE(req);
             EMPTY_BODY(req);
 
@@ -286,7 +286,7 @@ int main() {
 
         CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine, &users, &ratelimiter](const crow::request &req) {
             AUTHENTICATE(req);
-            RATELIMITED(BUCKET_TYPE::LISTS, userId);
+            RATELIMITED(Util::BUCKET_TYPE::LISTS, userId);
 
             auto symbols = engine.Symbols();
             std::vector<SymbolDto> symbolsDto{};
@@ -302,7 +302,7 @@ int main() {
 
         CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)([&engine, &users, &ratelimiter](const crow::request &req, unsigned int symbolId) {
             AUTHENTICATE(req);
-            RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
+            RATELIMITED(Util::BUCKET_TYPE::SIMPLE, userId);
 
             auto symbol = engine.Symbol(symbolId);
             if (symbol == nullptr) {
@@ -313,7 +313,7 @@ int main() {
 
         CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)([&engine, &users, &ratelimiter](const crow::request &req, unsigned int orderBookId) {
             AUTHENTICATE(req);
-            RATELIMITED(BUCKET_TYPE::ORDER_BOOK, userId);
+            RATELIMITED(Util::BUCKET_TYPE::ORDER_BOOK, userId);
 
             Data::OrderBook const *book = engine.OrderBook(orderBookId);
             if (book == nullptr) {
@@ -323,9 +323,9 @@ int main() {
         });
 
 
-        CROW_ROUTE(app, "/order/<uint>").methods("DELETE"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req, unsigned int orderId) {
+        CROW_ROUTE(app, "/order/<uint>").methods("DELETE"_method)([&engine, &users, &ratelimiter](const crow::request &req, unsigned int orderId) {
             AUTHENTICATE(req);
-            RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
+            RATELIMITED(Util::BUCKET_TYPE::SIMPLE, userId);
 
             // check if order exists and belongs to us
             auto order = engine.FindOrder(orderId); 
@@ -346,7 +346,7 @@ int main() {
     CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
-        RATELIMITED(BUCKET_TYPE::SIMPLE, userId);
+        RATELIMITED(Util::BUCKET_TYPE::SIMPLE, userId);
 
         // Check if end of trading day
         auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(

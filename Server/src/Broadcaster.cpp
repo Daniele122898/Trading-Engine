@@ -37,9 +37,9 @@ namespace TradingEngine {
         return true;
     }
 
-    inline bool IsRatelimited(crow::websocket::connection &conn, Ratelimiter& ratelimiter) {
+    inline bool IsRatelimited(crow::websocket::connection &conn, Util::Ratelimiter& ratelimiter) {
         auto userId = (uint64_t) conn.userdata();
-        if (ratelimiter.IsRatelimited(BUCKET_TYPE::SIMPLE, userId)) {
+        if (ratelimiter.IsRatelimited(Util::BUCKET_TYPE::SIMPLE, userId)) {
             RespondError(conn, WsData::ErrorCodes::RATELIMITED,
                          "You have sent too many requests!");
             return true;
