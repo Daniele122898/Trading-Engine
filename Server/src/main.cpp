@@ -56,33 +56,8 @@ namespace TradingEngine::Data {
 
 int main() {
 
-//    std::chrono::time_point currently = std::chrono::time_point_cast<std::chrono::milliseconds>(
-//            std::chrono::system_clock::now()
-//    );
-//    std::chrono::duration millis_since_utc_epoch = currently.time_since_epoch();
-
     Util::log::Init("Matching Engine");
 
-    std::chrono::time_point currently = std::chrono::time_point_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now()
-    );
-    std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> tp{std::chrono::seconds{1669039514}};
-    auto days = std::chrono::floor<std::chrono::days>(tp);
-
-    std::chrono::year_month_day ymd{days};
-    std::cout << "Current Year: " << static_cast<int>(ymd.year())
-              << ", Month: " << static_cast<unsigned>(ymd.month())
-              << ", Day: " << static_cast<unsigned>(ymd.day()) << '\n';
-    std::cout << std::chrono::system_clock::to_time_t(currently) << std::endl;
-    currently += std::chrono::days(10);
-
-    ymd = std::chrono::floor<std::chrono::days>(currently);
-    std::cout << "Current Year: " << static_cast<int>(ymd.year())
-              << ", Month: " << static_cast<unsigned>(ymd.month())
-                  << ", Day: " << static_cast<unsigned>(ymd.day()) << '\n';
-
-        std::cout << std::chrono::system_clock::to_time_t(currently) << std::endl;
-        std::chrono::duration millis_since_utc_epoch = currently.time_since_epoch();
 
         std::string dbConnectionString = "postgres://postgres:test123@localhost:5432/trading_test";
         TradingEngine::Db::Database db{dbConnectionString};
@@ -187,7 +162,7 @@ int main() {
                     if (!db.TryGetUser(username, userId, passhash, salt, apikey)) {
                         return crow::response{crow::BAD_REQUEST};
                     }
-                    if (!Util::sha256_match(passhash, salt, password)) {
+                    if (!sha256_match(passhash, salt, password)) {
                         return crow::response{crow::BAD_REQUEST};
                     }
 
@@ -227,8 +202,8 @@ int main() {
                 unsigned char hash[32];
                 unsigned char salt[32];
                 unsigned char apikey[32];
-                Util::sha256_salted(password, hash, salt);
-                Util::get_rand(apikey, 32);
+                sha256_salted(password, hash, salt);
+                get_rand(apikey, 32);
                 auto userid = db.AddUser(username, email, hash, salt, apikey);
             }
             catch (pqxx::sql_error const &e) {
