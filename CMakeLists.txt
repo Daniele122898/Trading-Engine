@@ -15,4 +15,5 @@ add_subdirectory(internal/util)
 add_subdirectory(internal/matching)
 
 add_subdirectory(Server)
+add_subdirectory(Stats)
 add_subdirectory(tests)
