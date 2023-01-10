@@ -4,7 +4,8 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include "Ratelimiter.h"
-#include "db.h"
+#include "engineDb.h"
+#include "statsDb.h"
 #include "enc.h"
 
 using namespace StatsEngine;
@@ -13,8 +14,12 @@ int main() {
 
     TradingEngine::Util::log::Init("Stats Engine");
 
-    std::string dbConnectionString = "postgres://postgres:test123@localhost:5432/trading_test";
-    Database db{dbConnectionString};
+    std::string engineDbConnStr = "postgres://postgres:test123@localhost:5432/trading_test";
+    EngineDb engineDb{engineDbConnStr};
+
+    std::string statsDbConnStr = "postgres://postgres:test123@localhost:5432/stats_test";
+    StatsDb statsDb{statsDbConnStr};
+    statsDb.CreateTablesIfNotExist();
 
     auto ratelimiter = TradingEngine::Util::Ratelimiter();
     std::unordered_map<std::string, uint64_t> users{};
@@ -42,7 +47,7 @@ int main() {
         return crow::response{crow::status::TOO_MANY_REQUESTS};\
     }
 
-    CROW_ROUTE(app, "/login").methods("POST"_method)([&db, &users](const crow::request &req) {
+    CROW_ROUTE(app, "/login").methods("POST"_method)([&engineDb, &users](const crow::request &req) {
         EMPTY_BODY(req);
 
         try {
@@ -51,7 +56,7 @@ int main() {
             if (json.contains("apikey")) {
                 auto apikey = json.at("apikey").get<std::string>();
                 uint64_t userId;
-                if (!db.TryGetUserId(apikey, userId)) {
+                if (!engineDb.TryGetUserId(apikey, userId)) {
                     return crow::response{crow::BAD_REQUEST};
                 }
                 users[apikey] = userId;
@@ -63,7 +68,7 @@ int main() {
                 std::basic_string<std::byte> passhash;
                 std::basic_string<std::byte> salt;
                 std::string apikey;
-                if (!db.TryGetUser(username, userId, passhash, salt, apikey)) {
+                if (!engineDb.TryGetUser(username, userId, passhash, salt, apikey)) {
                     return crow::response{crow::BAD_REQUEST};
                 }
                 if (!sha256_match(passhash, salt, password)) {
@@ -93,7 +98,7 @@ int main() {
     });
 
     // Endpoints
-    CROW_ROUTE(app, "/register").methods("POST"_method)([&db](const crow::request &req) {
+    CROW_ROUTE(app, "/register").methods("POST"_method)([&engineDb](const crow::request &req) {
         EMPTY_BODY(req);
 
         try {
@@ -108,7 +113,7 @@ int main() {
             unsigned char apikey[32];
             sha256_salted(password, hash, salt);
             get_rand(apikey, 32);
-            auto userid = db.AddUser(username, email, hash, salt, apikey);
+            auto userid = engineDb.AddUser(username, email, hash, salt, apikey);
         }
         catch (pqxx::sql_error const &e) {
             CORE_ERROR("SQL ERROR: {}", e.what());

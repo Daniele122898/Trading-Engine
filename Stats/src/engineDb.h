@@ -2,8 +2,8 @@
 // Created by danie on 11/20/2022.
 //
 
-#ifndef STATSENGINE_DB_H
-#define STATSENGINE_DB_H
+#ifndef STATSENGINE_ENGINEDB_H
+#define STATSENGINE_ENGINEDB_H
 
 #include <log.h>
 #include <cstdint>
@@ -14,9 +14,9 @@
 
 namespace StatsEngine {
 
-    class Database {
+    class EngineDb {
     public:
-        explicit Database(std::string connectionString) : m_conn{connectionString} {};
+        explicit EngineDb(std::string connectionString) : m_conn{connectionString} {};
 
         std::vector<TradingEngine::Data::Symbol> GetSymbols() {
             pqxx::work txn{m_conn};
@@ -95,4 +95,4 @@ namespace StatsEngine {
     };
 }
 
-#endif //STATSENGINE_DB_H
+#endif //STATSENGINE_ENGINEDB_H
