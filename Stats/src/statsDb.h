@@ -22,17 +22,18 @@ namespace StatsEngine {
             try {
                 pqxx::work txn{m_conn};
 
-                // txn.exec0(
-                //         "CREATE TABLE IF NOT EXISTS public.users ( "
-                //         "id bigserial PRIMARY KEY, "
-                //         "username varchar(25) NOT NULL UNIQUE, "
-                //         "email varchar(320) NOT NULL UNIQUE, "
-                //         "password varchar(128) NOT NULL, "
-                //         "salt varchar(128) NOT NULL, "
-                //         "apikey varchar(128) NOT NULL UNIQUE "
-                
-                txn.commit();
+                txn.exec0(
+                        "CREATE TABLE IF NOT EXISTS public.price_history ("
+                        "id bigserial PRIMARY KEY,"
+                        "symbol_id integer NOT NULL,"
+                        "start_time timestamp NOT NULL,"
+                        "end_time timestamp NOT NULL,"
+                        "price bigint NOT NULL,"
+                        "volume bigint NOT NULL"
+                        ")"
+                        );
 
+                txn.commit();
             }
             catch (pqxx::sql_error const &e) {
                 CORE_ERROR("SQL ERROR: {}", e.what());
