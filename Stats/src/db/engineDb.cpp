@@ -1,24 +1,9 @@
-//
-// Created by danie on 11/20/2022.
-//
-
-#ifndef STATSENGINE_ENGINEDB_H
-#define STATSENGINE_ENGINEDB_H
-
+#include "engineDb.h"
 #include <log.h>
-#include <cstdint>
-#include <string>
-#include <pqxx/pqxx>
-#include <symbol.h>
-#include <order.h>
 
-namespace StatsEngine {
+namespace StatsEngine::Db {
 
-    class EngineDb {
-    public:
-        explicit EngineDb(std::string connectionString) : m_conn{connectionString} {};
-
-        std::vector<TradingEngine::Data::Symbol> GetSymbols() {
+        std::vector<TradingEngine::Data::Symbol> EngineDb::GetSymbols() {
             pqxx::work txn{m_conn};
             pqxx::result r{txn.exec("SELECT id, ticker FROM public.symbols")};
             std::vector<TradingEngine::Data::Symbol> symbols{};
@@ -32,7 +17,7 @@ namespace StatsEngine {
             return symbols;
         }
 
-        bool TryGetUserId(std::string &apikey, uint64_t &id) {
+        bool EngineDb::TryGetUserId(std::string &apikey, uint64_t &id) {
             pqxx::work txn{m_conn};
             pqxx::result r{txn.exec("SELECT id FROM public.users WHERE apikey = " + m_conn.quote(apikey))};
             if (r.empty())
@@ -44,7 +29,7 @@ namespace StatsEngine {
             return true;
         }
 
-        bool TryGetUser(std::string &username, uint64_t &id, std::basic_string<std::byte> &password,
+        bool EngineDb::TryGetUser(std::string &username, uint64_t &id, std::basic_string<std::byte> &password,
                         std::basic_string<std::byte> &salt, std::string &apikey) {
             pqxx::work txn{m_conn};
             pqxx::result r{txn.exec(
@@ -62,7 +47,7 @@ namespace StatsEngine {
             return true;
         }
 
-        uint64_t AddUser(std::string username, std::string email, unsigned char *pwhash, unsigned char *salt,
+        uint64_t EngineDb::AddUser(std::string username, std::string email, unsigned char *pwhash, unsigned char *salt,
                          unsigned char *apikey) {
             pqxx::work txn{m_conn};
 
@@ -89,10 +74,4 @@ namespace StatsEngine {
 
             return currUserId;
         }
-
-    private:
-        pqxx::connection m_conn;
-    };
 }
-
-#endif //STATSENGINE_ENGINEDB_H

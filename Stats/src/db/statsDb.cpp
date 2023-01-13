@@ -1,24 +1,10 @@
-//
-// Created by danie on 11/20/2022.
-//
-
-#ifndef STATSENGINE_STATSDB_H
-#define STATSENGINE_STATSDB_H
-
-#include <log.h>
-#include <cstdint>
+#include "statsDb.h"
 #include <string>
-#include <pqxx/pqxx>
-#include <symbol.h>
-#include <order.h>
+#include <log.h>
 
-namespace StatsEngine {
+namespace StatsEngine::Db {
 
-    class StatsDb {
-    public:
-        explicit StatsDb(std::string connectionString) : m_conn{connectionString} {};
-
-        void CreateTablesIfNotExist() {
+        void StatsDb::CreateTablesIfNotExist() {
             try {
                 pqxx::work txn{m_conn};
 
@@ -43,10 +29,4 @@ namespace StatsEngine {
                 CORE_ERROR("ERROR: {}", e.what());
             }
         }
-
-    private:
-        pqxx::connection m_conn;
-    };
 }
-
-#endif //STATSENGINE_STATSDB_H

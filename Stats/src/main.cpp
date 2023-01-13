@@ -4,8 +4,8 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include "Ratelimiter.h"
-#include "engineDb.h"
-#include "statsDb.h"
+#include "db/engineDb.h"
+#include "db/statsDb.h"
 #include "enc.h"
 
 using namespace StatsEngine;
@@ -15,10 +15,10 @@ int main() {
     TradingEngine::Util::log::Init("Stats Engine");
 
     std::string engineDbConnStr = "postgres://postgres:test123@localhost:5432/trading_test";
-    EngineDb engineDb{engineDbConnStr};
+    Db::EngineDb engineDb{engineDbConnStr};
 
     std::string statsDbConnStr = "postgres://postgres:test123@localhost:5432/stats_test";
-    StatsDb statsDb{statsDbConnStr};
+    Db::StatsDb statsDb{statsDbConnStr};
     statsDb.CreateTablesIfNotExist();
 
     auto ratelimiter = TradingEngine::Util::Ratelimiter();
