@@ -7,6 +7,7 @@
 #include "db/engineDb.h"
 #include "db/statsDb.h"
 #include "enc.h"
+#include "symbol.h"
 
 using namespace StatsEngine;
 
@@ -18,8 +19,18 @@ int main() {
     Db::EngineDb engineDb{engineDbConnStr};
 
     std::string statsDbConnStr = "postgres://postgres:test123@localhost:5432/stats_test";
-    Db::StatsDb statsDb{statsDbConnStr};
+    Db::StatsDb statsDb{statsDbConnStr, engineDbConnStr};
     statsDb.CreateTablesIfNotExist();
+    std::string startTime = "2022-12-23 16:50:00";
+    std::string endTime = "2022-12-23 16:55:00";
+    statsDb.UpdateHistory(1, startTime, endTime, 0);
+
+    auto symbols = engineDb.GetSymbols();
+    // std::unordered_map<uint32_t, TradingEngine::Data::Symbol> sym{};
+    // for (auto &symb: symbols) {
+    //     CORE_TRACE("Adding symbol {} {}", symb.Id, symb.Ticker);
+    //     sym.emplace(symb.Id, symb);
+    // }
 
     auto ratelimiter = TradingEngine::Util::Ratelimiter();
     std::unordered_map<std::string, uint64_t> users{};

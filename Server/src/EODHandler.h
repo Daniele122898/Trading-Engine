@@ -30,10 +30,10 @@ namespace TradingEngine {
         ~EODHandler() {
             m_running = false;
             // wait for thread to shut down
-            CORE_TRACE("Waiting for reporter thread to exit");
+            CORE_TRACE("Waiting for EOD thread to exit");
             if (m_thread.joinable())
                 m_thread.join();
-            CORE_TRACE("Killed reporter thread");
+            CORE_TRACE("Killed EOD thread");
         }
 
         EODHandler(const EODHandler &reporter) = delete;
