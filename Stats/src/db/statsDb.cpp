@@ -38,14 +38,24 @@ namespace StatsEngine::Db {
             pqxx::work txn{m_engineConn};
             
             std::stringstream buySideQuery;
-            buySideQuery << "SELECT avg(price) as price, count(id) as volume FROM public.fills "
+            // buySideQuery << "SELECT avg(price) as price, count(id) as volume FROM public.fills "
+            //     << "WHERE symbolid = " << std::to_string(symbolId) << " "
+            //     << "AND filled_at >= '" << startTime << "' "
+            //     << "AND filled_at < '" << endTime << "' "
+            //     << "AND side = 0";
+
+            buySideQuery << "SELECT avg(CASE WHEN f.type != 0 THEN f.price "
+                << "ELSE (SELECT price FROM public.all_orders AS ao WHERE ao.id = f.counter_order_id) END) "
+                << "as price, count(id) as volume FROM public.fills as f "
                 << "WHERE symbolid = " << std::to_string(symbolId) << " "
                 << "AND filled_at >= '" << startTime << "' "
                 << "AND filled_at < '" << endTime << "' "
                 << "AND side = 0";
 
             std::stringstream sellSideQuery;
-            sellSideQuery << "SELECT avg(price) as price, count(id) as volume FROM public.fills "
+            sellSideQuery << "SELECT avg(CASE WHEN f.type != 0 THEN f.price "
+                << "ELSE (SELECT price FROM public.all_orders AS ao WHERE ao.id = f.counter_order_id) END) " 
+                << "as price, count(id) as volume FROM public.fills as f "
                 << "WHERE symbolid = " << std::to_string(symbolId) << " "
                 << "AND filled_at >= '" << startTime << "' "
                 << "AND filled_at < '" << endTime << "' "
