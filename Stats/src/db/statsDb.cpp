@@ -1,6 +1,10 @@
 #include "statsDb.h"
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <log.h>
 #include <sys/types.h>
@@ -31,6 +35,41 @@ namespace StatsEngine::Db {
             catch (std::exception const &e) {
                 CORE_ERROR("ERROR: {}", e.what());
             }
+        }
+        
+        std::tm StatsDb::GetLastEndTime(uint32_t symboldId) {
+            pqxx::work txn{m_statsConn};
+
+            std::string query = "SELECT date_trunc('second', end_time) "
+	                            "FROM public.price_history "
+                                "WHERE symbol_id = 1 " 
+                                "ORDER BY end_time DESC LIMIT 1";
+
+            pqxx::result res{txn.exec(query)};
+            if (res.empty()) {
+                return std::tm{};
+            }
+
+            std::istringstream is{res[0][0].as<std::string>()};
+            std::tm tm = {};
+            is >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+            return tm;
+        }
+
+        std::tm StatsDb::GetFirstTimestamp(uint32_t symbolid) {
+            pqxx::work txn{m_engineConn};
+
+            std::string ts = txn.query_value<std::string>(
+                    "SELECT date_trunc('second', filled_at) "
+                    "FROM public.fills as f "
+                    "WHERE symbolid = 1 AND reason = 2 "
+                    "ORDER BY filled_at ASC LIMIT 1"
+                    );
+
+            std::istringstream is{ts};
+            std::tm tm = {};
+            is >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+            return tm;
         }
 
         // TODO: Fix pricing, potentially do volume adjusted average price

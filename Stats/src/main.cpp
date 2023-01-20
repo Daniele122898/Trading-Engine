@@ -1,6 +1,10 @@
+#include <chrono>
 #include <cstdint>
+#include <ctime>
+#include <iomanip>
 #include <log.h>
 #include <crow.h>
+#include <sstream>
 #include <string>
 #include <nlohmann/json.hpp>
 #include "Ratelimiter.h"
@@ -10,6 +14,15 @@
 #include "symbol.h"
 
 using namespace StatsEngine;
+
+
+std::tm GetNextInterval(std::tm&  start) {
+    auto tp = std::chrono::system_clock::from_time_t(std::mktime(&start)); 
+    tp += std::chrono::minutes(5);
+    auto ett = std::chrono::system_clock::to_time_t(tp);
+    std::tm etm = *std::gmtime(&ett);
+    return etm;
+}
 
 int main() {
 
@@ -23,7 +36,25 @@ int main() {
     statsDb.CreateTablesIfNotExist();
     std::string startTime = "2022-12-23 16:50:00";
     std::string endTime = "2022-12-23 16:55:00";
-    statsDb.UpdateHistory(1, startTime, endTime, 0);
+    //statsDb.UpdateHistory(1, startTime, endTime, 0);
+    auto tm = statsDb.GetFirstTimestamp(1);
+    if (tm.tm_min % 10 >= 5) {
+        tm.tm_min = 5;
+        tm.tm_sec = 0;
+    } else {
+        tm.tm_min = 0;
+        tm.tm_sec = 0;
+    }
+    // get Starttime
+    std::ostringstream st{};
+    st << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+    // get endtime
+    std::ostringstream et{};
+    auto etm = GetNextInterval(tm);
+    et << std::put_time(&etm, "%Y-%m-%d %H:%M:%S");
+    CORE_TRACE("TIME INTERVAL: {} - {}", st.str(), et.str());
+    return 0;
 
     auto symbols = engineDb.GetSymbols();
     // std::unordered_map<uint32_t, TradingEngine::Data::Symbol> sym{};

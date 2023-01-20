@@ -23,7 +23,7 @@ namespace StatsEngine {
                 std::string statsConnStr) : 
             m_symbols{std::move(symbols)}, m_engineDb(engineConnStr), m_statsDb(statsConnStr, engineConnStr) {
 
-            tp = TradingEngine::Util::GetPointInToday(23, 05, 0);
+            tp = std::chrono::system_clock::now();
 
             m_thread = std::thread([this]() {
                 HandlerLoop();
