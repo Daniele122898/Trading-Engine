@@ -17,7 +17,8 @@ using namespace StatsEngine;
 
 
 std::tm GetNextInterval(std::tm&  start) {
-    auto tp = std::chrono::system_clock::from_time_t(std::mktime(&start)); 
+    // TODO: Check the rigorousness of this timezone approach
+    auto tp = std::chrono::system_clock::from_time_t(std::mktime(&start) - timezone); 
     tp += std::chrono::minutes(5);
     auto ett = std::chrono::system_clock::to_time_t(tp);
     std::tm etm = *std::gmtime(&ett);
@@ -34,15 +35,12 @@ int main() {
     std::string statsDbConnStr = "postgres://postgres:test123@localhost:5432/stats_test";
     Db::StatsDb statsDb{statsDbConnStr, engineDbConnStr};
     statsDb.CreateTablesIfNotExist();
-    std::string startTime = "2022-12-23 16:50:00";
-    std::string endTime = "2022-12-23 16:55:00";
-    //statsDb.UpdateHistory(1, startTime, endTime, 0);
     auto tm = statsDb.GetFirstTimestamp(1);
     if (tm.tm_min % 10 >= 5) {
-        tm.tm_min = 5;
+        tm.tm_min -= (tm.tm_min % 10) - 5;
         tm.tm_sec = 0;
     } else {
-        tm.tm_min = 0;
+        tm.tm_min -= tm.tm_min % 10;
         tm.tm_sec = 0;
     }
     // get Starttime
