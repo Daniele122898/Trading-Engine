@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <ctime>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <log.h>
@@ -56,17 +57,19 @@ namespace StatsEngine::Db {
             return tm;
         }
 
-        std::tm StatsDb::GetFirstTimestamp(uint32_t symbolid) {
+        std::optional<std::tm> StatsDb::GetFirstTimestamp(uint32_t symbolid) {
             pqxx::work txn{m_engineConn};
 
-            std::string ts = txn.query_value<std::string>(
-                    "SELECT date_trunc('second', filled_at) "
+            std::string query = "SELECT date_trunc('second', filled_at) "
                     "FROM public.fills as f "
                     "WHERE symbolid = 1 AND reason = 2 "
-                    "ORDER BY filled_at ASC LIMIT 1"
-                    );
+                    "ORDER BY filled_at ASC LIMIT 1";
 
-            std::istringstream is{ts};
+            pqxx::result res{txn.exec(query)};
+            if (res.empty()) {
+                return {};
+            }
+            std::istringstream is{res[0][0].as<std::string>()};
             std::tm tm = {};
             is >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
             return tm;

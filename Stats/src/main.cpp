@@ -35,7 +35,10 @@ int main() {
     std::string statsDbConnStr = "postgres://postgres:test123@localhost:5432/stats_test";
     Db::StatsDb statsDb{statsDbConnStr, engineDbConnStr};
     statsDb.CreateTablesIfNotExist();
-    auto tm = statsDb.GetFirstTimestamp(1);
+    auto tmo = statsDb.GetFirstTimestamp(1);
+    if (!tmo.has_value())
+        return 0;
+    auto tm = tmo.value();
     if (tm.tm_min % 10 >= 5) {
         tm.tm_min -= (tm.tm_min % 10) - 5;
         tm.tm_sec = 0;

@@ -19,7 +19,7 @@ namespace StatsEngine::Db {
         void CreateTablesIfNotExist();
         void UpdateHistory(uint32_t symbolId, std::string& startTime, std::string& endTime, int64_t prevPrice);
         std::tm GetLastEndTime(uint32_t symboldId);
-        std::tm GetFirstTimestamp(uint32_t symbolid);
+        std::optional<std::tm> GetFirstTimestamp(uint32_t symbolid);
 
     private:
         pqxx::connection m_statsConn;
