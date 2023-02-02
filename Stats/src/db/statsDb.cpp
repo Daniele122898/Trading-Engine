@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <log.h>
+#include <string_view>
 #include <sys/types.h>
 
 namespace StatsEngine::Db {
@@ -38,17 +39,17 @@ namespace StatsEngine::Db {
             }
         }
         
-        std::tm StatsDb::GetLastEndTime(uint32_t symboldId) {
+        std::optional<std::tm> StatsDb::GetLastEndTime(uint32_t symbolId) {
             pqxx::work txn{m_statsConn};
 
             std::string query = "SELECT date_trunc('second', end_time) "
 	                            "FROM public.price_history "
-                                "WHERE symbol_id = 1 " 
-                                "ORDER BY end_time DESC LIMIT 1";
+                                "WHERE symbol_id = " + std::to_string(symbolId) + 
+                                " ORDER BY end_time DESC LIMIT 1";
 
             pqxx::result res{txn.exec(query)};
             if (res.empty()) {
-                return std::tm{};
+                return {};
             }
 
             std::istringstream is{res[0][0].as<std::string>()};
@@ -62,7 +63,7 @@ namespace StatsEngine::Db {
 
             std::string query = "SELECT date_trunc('second', filled_at) "
                     "FROM public.fills as f "
-                    "WHERE symbolid = 1 AND reason = 2 "
+                    "WHERE symbolid = " + std::to_string(symbolid) + " AND reason = 2 "
                     "ORDER BY filled_at ASC LIMIT 1";
 
             pqxx::result res{txn.exec(query)};
@@ -74,9 +75,28 @@ namespace StatsEngine::Db {
             is >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
             return tm;
         }
+        
+        int64_t StatsDb::GetLastPrice(uint32_t symbolId) {
+            pqxx::work txn{m_statsConn};
+
+            std::string query = "SELECT price "
+	                            "FROM public.price_history "
+                                "WHERE symbol_id = " + std::to_string(symbolId) +  
+                                " ORDER BY end_time DESC LIMIT 1";
+
+            pqxx::result res{txn.exec(query)};
+            if (res.empty()) {
+                return 0;
+            }
+
+            int64_t price = res[0][0].as<int64_t>();
+            txn.commit();
+
+            return price;
+        }
 
         // TODO: Fix pricing, potentially do volume adjusted average price
-        void StatsDb::UpdateHistory(uint32_t symbolId, std::string& startTime, std::string& endTime, int64_t prevPrice) {
+        int64_t StatsDb::UpdateHistory(uint32_t symbolId, std::string_view startTime, std::string_view endTime, int64_t prevPrice) {
             pqxx::work txn{m_engineConn};
             
             std::stringstream buySideQuery;
@@ -101,20 +121,22 @@ namespace StatsEngine::Db {
             pqxx::result buySide{txn.exec(buySideQuery.str())};
             pqxx::result sellSide{txn.exec(sellSideQuery.str())};
             int64_t price = 0;
+            uint64_t sellVol = sellSide[0][1].as<uint64_t>();
+            uint64_t buyVol = buySide[0][1].as<uint64_t>();
             uint64_t volume = 0;
-            if (buySide.empty() && sellSide.empty()) {
+            if (buyVol == 0 && sellVol == 0) {
                price = prevPrice; 
-            } else if (buySide.empty()) {
+            } else if (buyVol == 0) {
                 price = std::round(sellSide[0][0].as<double>());
-                volume = sellSide[0][1].as<uint64_t>();
-            } else if (sellSide.empty()) {
+                volume = sellVol;
+            } else if (sellVol == 0) {
                 price = std::round(buySide[0][0].as<double>());
-                volume = buySide[0][1].as<uint64_t>();
+                volume = buyVol;
             } else {
                 int64_t buyPrice = std::round(buySide[0][0].as<double>());
                 int64_t sellPrice = std::round(sellSide[0][0].as<double>());
                 price = std::round((buyPrice + sellPrice) / 2.0); 
-                volume = buySide[0][1].as<uint64_t>() + sellSide[0][1].as<uint64_t>();
+                volume = buyVol + sellVol;
             }
             txn.commit();
 
@@ -130,6 +152,8 @@ namespace StatsEngine::Db {
 
             statsTxn.exec0(insertQuery.str());
             statsTxn.commit();
+
+            return price;
         }
     
 }

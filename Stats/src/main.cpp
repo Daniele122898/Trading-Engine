@@ -11,19 +11,10 @@
 #include "db/engineDb.h"
 #include "db/statsDb.h"
 #include "enc.h"
+#include "inserter.h"
 #include "symbol.h"
 
 using namespace StatsEngine;
-
-
-std::tm GetNextInterval(std::tm&  start) {
-    // TODO: Check the rigorousness of this timezone approach
-    auto tp = std::chrono::system_clock::from_time_t(std::mktime(&start) - timezone); 
-    tp += std::chrono::minutes(5);
-    auto ett = std::chrono::system_clock::to_time_t(tp);
-    std::tm etm = *std::gmtime(&ett);
-    return etm;
-}
 
 int main() {
 
@@ -35,29 +26,11 @@ int main() {
     std::string statsDbConnStr = "postgres://postgres:test123@localhost:5432/stats_test";
     Db::StatsDb statsDb{statsDbConnStr, engineDbConnStr};
     statsDb.CreateTablesIfNotExist();
-    auto tmo = statsDb.GetFirstTimestamp(1);
-    if (!tmo.has_value())
-        return 0;
-    auto tm = tmo.value();
-    if (tm.tm_min % 10 >= 5) {
-        tm.tm_min -= (tm.tm_min % 10) - 5;
-        tm.tm_sec = 0;
-    } else {
-        tm.tm_min -= tm.tm_min % 10;
-        tm.tm_sec = 0;
-    }
-    // get Starttime
-    std::ostringstream st{};
-    st << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
 
-    // get endtime
-    std::ostringstream et{};
-    auto etm = GetNextInterval(tm);
-    et << std::put_time(&etm, "%Y-%m-%d %H:%M:%S");
-    CORE_TRACE("TIME INTERVAL: {} - {}", st.str(), et.str());
-    return 0;
 
     auto symbols = engineDb.GetSymbols();
+    Inserter inserter = Inserter(symbols, engineDbConnStr, statsDbConnStr);
+
     // std::unordered_map<uint32_t, TradingEngine::Data::Symbol> sym{};
     // for (auto &symb: symbols) {
     //     CORE_TRACE("Adding symbol {} {}", symb.Id, symb.Ticker);

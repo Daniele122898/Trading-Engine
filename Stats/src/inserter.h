@@ -46,6 +46,8 @@ namespace StatsEngine {
 
     private:
         void HandlerLoop();
+        std::tm GetNextInterval(std::tm&  start);
+        void NormalizeTimeStamp(std::tm& tm);
         std::chrono::system_clock::time_point tp;
 
         std::vector<TradingEngine::Data::Symbol> m_symbols;

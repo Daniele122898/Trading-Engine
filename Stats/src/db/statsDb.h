@@ -17,8 +17,9 @@ namespace StatsEngine::Db {
             m_statsConn{connStatsDb}, m_engineConn{connEngineDb} {};
 
         void CreateTablesIfNotExist();
-        void UpdateHistory(uint32_t symbolId, std::string& startTime, std::string& endTime, int64_t prevPrice);
-        std::tm GetLastEndTime(uint32_t symboldId);
+        int64_t UpdateHistory(uint32_t symbolId, std::string_view startTime, std::string_view endTime, int64_t prevPrice);
+        int64_t GetLastPrice(uint32_t symbolId);
+        std::optional<std::tm> GetLastEndTime(uint32_t symboldId);
         std::optional<std::tm> GetFirstTimestamp(uint32_t symbolid);
 
     private:
