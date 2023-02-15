@@ -27,6 +27,7 @@ namespace StatsEngine {
                     NormalizeTimeStamp(tmo.value());
                 }
                 auto tm = tmo.value();
+                // TODO: Check if this timezone funny business is correct
                 auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm) - timezone);
                 int64_t prev_price = m_statsDb.GetLastPrice(symb.Id);
                 while (tp < now) {
