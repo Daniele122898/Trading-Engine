@@ -6,11 +6,13 @@
 #define TRADINGENGINE_MATCHINGENGINE_H
 
 #include <cstdint>
+#include <thread>
 #include <vector>
 #include <unordered_map>
 #include <optional>
 
 #include "order.h"
+#include "readerwriterqueue.h"
 #include "symbol.h"
 #include "order_book.h"
 #include "not_implemented_exception.h"
@@ -24,8 +26,20 @@ namespace TradingEngine::Matching {
     public:
 
         explicit MatchingEngine(MatchReporter<Logger, Persistence, Broadcaster> reporter) :
-                m_reporter{std::move(reporter)} {}
+                m_reporter{std::move(reporter)} {
 
+            m_thread = std::thread([this]() {
+                    MatchingLoop();
+            });
+        }
+
+        ~MatchingEngine() {
+            m_running = false;
+            CORE_TRACE("Waiting for Matching Engine Thread to exit");
+            if (m_thread.joinable())
+                m_thread.join();
+            CORE_TRACE("Killed Matching Engine Thread");
+        }
 
         std::optional<Data::Order> FindOrder(uint64_t id) {
             auto it = m_orders.find(id); 
@@ -64,6 +78,10 @@ namespace TradingEngine::Matching {
             // Order has not been fully filled, thus place it.
             m_orders[order.Id] = order;
             ob.AddOrder(m_orders.at(order.Id));
+        }
+        
+        void AddOrderQueue(Data::Order &order) {
+            m_orderQueue.enqueue(order);    
         }
 
         void AddOrder(Data::Order &order) {
@@ -126,6 +144,18 @@ namespace TradingEngine::Matching {
         }
 
     private:
+
+        void MatchingLoop() {
+            while (m_running) {
+                Data::Order order;
+                if (!m_orderQueue.try_dequeue(order)) 
+                    continue;
+
+                AddOrder(order);
+            }
+
+        }
+
         bool Match(Data::Order &order, Data::OrderBook &book) {
             switch (order.Type) {
                 case Data::OrderType::MARKET: 
@@ -323,6 +353,11 @@ namespace TradingEngine::Matching {
             return true;
         }
 
+        MatchingEngine(const MatchingEngine &engine) = delete;
+        MatchingEngine(const MatchingEngine &&engine) = delete;
+        MatchingEngine operator=(const MatchingEngine &engine) = delete;
+        MatchingEngine operator=(const MatchingEngine &&engine) = delete;
+
         std::greater<int64_t> m_greater{};
         std::less<int64_t> m_less{};
 
@@ -332,6 +367,11 @@ namespace TradingEngine::Matching {
         std::unordered_map<uint64_t, Data::Order> m_orders{};
 
         MatchReporter<Logger, Persistence, Broadcaster> m_reporter;
+
+        // Run on separate thread to ensure single threaded nature of matching engine 
+        moodycamel::BlockingReaderWriterQueue<Data::Order> m_orderQueue{200};
+        std::thread m_thread;
+        bool m_running = true;
 
     };
 

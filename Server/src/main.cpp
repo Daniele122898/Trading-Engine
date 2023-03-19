@@ -344,7 +344,7 @@ int main() {
             CORE_TRACE("ADDED ORDER WITH ID {}", id);
 //            nextOrderId.store(++id);
             broadcaster->ReportOrderCreation(order);
-            engine.AddOrder(order);
+            engine.AddOrderQueue(order);
 
             // TODO: Fix this temporary mess
             return crow::response{crow::status::OK, std::to_string(order.Id)};
