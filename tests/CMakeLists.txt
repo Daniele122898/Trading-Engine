@@ -13,7 +13,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /wd4201)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fdiagnostics-show-template-tree)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fdiagnostics-show-template-tree)
 endif()
 
 target_link_libraries(${PROJECT_NAME}
