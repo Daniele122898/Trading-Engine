@@ -342,8 +342,11 @@ int main() {
             auto id = db.AddOrder(order);
             order.Id = id;
             CORE_TRACE("ADDED ORDER WITH ID {}", id);
-//            nextOrderId.store(++id);
-            broadcaster->ReportOrderCreation(order);
+
+            // TODO: Potentially change this list once we actually have more lasting orders
+            if (order.Type == Data::OrderType::LIMIT)
+                broadcaster->ReportOrderCreation(order);
+
             engine.AddOrderQueue(order);
 
             // TODO: Fix this temporary mess
