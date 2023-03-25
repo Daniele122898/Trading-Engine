@@ -1,3 +1,9 @@
+# Rewrite
+- [x] ME single threaded, blocked,
+- [ ] Respond with action immediately
+- [ ] Don't actually safe orders (unless order specifies it wants to be safed.)
+- [ ] Drop Copy
+
 # TODO
 - [ ] Money / Economy / Position Limits
 - [ ] Liquidity Bots

@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <list>
 #include <log.h>
 #include <MatchingEngine.h>
 #include <crow.h>
@@ -6,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <mutex>
 
 #include "ThreadedLogReporter.h"
 
@@ -86,17 +88,13 @@ int main() {
             broadcaster->AddSymbol(symb.Id);
         }
 
-        // TODO LOAD ORDERS ON STARTUP
-        auto orders = db.GetOrders();
-        for (auto& order: orders) {
-            engine.AddNonMatchOrder(order);
-        }
-
-
         auto eodhandler = EODHandler(dbConnectionString, [&engine] (uint64_t orderId) {
             return engine.RemoveOrder(orderId);
         });
 
+        uint64_t nextOrderId = db.LargestFillId() + 1;
+
+        std::mutex mtx;
         crow::SimpleApp app;
 
 #ifndef NDEBUG
@@ -318,7 +316,9 @@ int main() {
             return crow::response{crow::status::OK};
         });
 
-    CROW_ROUTE(app, "/order").methods("POST"_method)([&engine, &db, &users, &broadcaster, &ratelimiter](const crow::request &req) {
+    CROW_ROUTE(app, "/order").methods("POST"_method)(
+            [&engine, &db, &users, &broadcaster, &ratelimiter, &mtx, &nextOrderId]
+            (const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
         RATELIMITED(Util::BUCKET_TYPE::SIMPLE, userId);
@@ -336,20 +336,24 @@ int main() {
         try {
             auto json = nlohmann::json::parse(req.body);
             auto order = json.get<Data::Order>();
-            order.CreationTp = now;
-            // TODO move to seperate thread
             order.UserId = userId;
-            auto id = db.AddOrder(order);
-            order.Id = id;
-            CORE_TRACE("ADDED ORDER WITH ID {}", id);
+            std::list<Data::OrderAction> actions{};
+            {
+                std::lock_guard<std::mutex> _(mtx);
+                
+                order.CreationTp = now;
+                order.Id = nextOrderId++;
+                CORE_TRACE("INSERTED ORDER WITH ID {}", order.Id);
+                engine.AddOrder(order, actions);
 
-            // TODO: Potentially change this list once we actually have more lasting orders
-            if (order.Type == Data::OrderType::LIMIT)
-                broadcaster->ReportOrderCreation(order);
+                // FIXME: Make sure creation is BEFORE fill, remove fill from matching engine
+                if (order.Type == Data::OrderType::LIMIT)
+                    broadcaster->ReportOrderCreation(order);
+            }
 
-            engine.AddOrderQueue(order);
+            // TODO: Add persistance + dropcopy
 
-            // TODO: Fix this temporary mess
+            // FIXME: Fix this temporary mess
             return crow::response{crow::status::OK, std::to_string(order.Id)};
         }
         catch (pqxx::sql_error const &e) {

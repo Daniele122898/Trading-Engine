@@ -92,6 +92,14 @@ namespace TradingEngine::Data {
     std::ostream& operator<<(std::ostream& str, const OrderType& type);
     std::ostream& operator<<(std::ostream& str, const Order& order);
 
+    struct OrderAction {
+        FillReason reason;
+        Order order;
+        Order counterOrder;
+        uint32_t quantity;
+    };
 } // TradingEngine::Data
+
+
 
 #endif //TRADINGENGINE_ORDER_H

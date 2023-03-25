@@ -161,6 +161,15 @@ namespace TradingEngine::Db {
 
             return currSymbolId;
         }
+        
+        uint64_t LargestFillId() {
+            pqxx::work txn{m_conn};
+            uint64_t id = txn.query_value<uint64_t>(
+                    "SELECT id from public.fills ORDER BY id DESC LIMIT 1"
+            );
+            txn.commit();
+            return id;
+        }
 
         uint64_t LastUsedOrderId() {
             pqxx::work txn{m_conn};
