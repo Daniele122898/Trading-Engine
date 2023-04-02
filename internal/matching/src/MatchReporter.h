@@ -25,7 +25,7 @@ namespace TradingEngine::Matching {
             m_persistence->UpdateOrderQuantity(order, newQuant);
         }
 
-        inline void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0) {
+        inline void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::Action reason, uint32_t diff = 0) {
             m_persistence->ReportOrderFill(order, counterOrder, reason, diff);
             m_broadcaster->ReportOrderFill(order, counterOrder, reason, diff);
             m_logger->ReportOrderFill(order, counterOrder, reason, diff);

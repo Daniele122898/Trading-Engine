@@ -217,7 +217,7 @@ namespace TradingEngine::Db {
             return;
         }
 
-        void AddFill(Data::Order const &order, Data::Order const &counterOrder, Data::FillReason reason) {
+        void AddFill(Data::Order const &order, Data::Order const &counterOrder, Data::Action reason) {
             pqxx::work txn{m_conn};
 
 
@@ -241,7 +241,7 @@ namespace TradingEngine::Db {
                   << "(SELECT creation from public.orders WHERE id = " + std::to_string(order.Id) + "),"
                   << "CURRENT_TIMESTAMP, ";
 
-            if (reason == Data::FillReason::FILLED) {
+            if (reason == Data::Action::FILLED) {
                 query << counterOrder.Id << ", "
                       << counterOrder.UserId << ", ";
             } else {

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <iostream>
 #include <chrono>
+#include <optional>
 
 namespace TradingEngine::Data {
     enum class OrderType {
@@ -20,7 +21,8 @@ namespace TradingEngine::Data {
         QUOTE,
     };
 
-    enum class FillReason {
+    enum class Action {
+        CREATION,
         SELF_TRADE,
         CANCELLED,
         FILLED,
@@ -93,10 +95,13 @@ namespace TradingEngine::Data {
     std::ostream& operator<<(std::ostream& str, const Order& order);
 
     struct OrderAction {
-        FillReason reason;
+        Action reason;
         Order order;
-        Order counterOrder;
+        std::optional<Order> counterOrder;
         uint32_t quantity;
+
+        OrderAction(Action reason, Order order, std::optional<Order> counterOrder, uint32_t quantity) :
+            reason{reason}, order{order}, counterOrder{counterOrder}, quantity{quantity} {}
     };
 } // TradingEngine::Data
 

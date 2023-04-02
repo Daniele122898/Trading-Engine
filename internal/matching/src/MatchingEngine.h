@@ -22,25 +22,23 @@
 
 namespace TradingEngine::Matching {
 
-    template<typename Logger, typename Persistence, typename Broadcaster>
+//    template<typename Logger> //, typename Persistence, typename Broadcaster
     class MatchingEngine {
     public:
 
-        explicit MatchingEngine(MatchReporter<Logger, Persistence, Broadcaster> reporter) :
-                m_reporter{std::move(reporter)} {
-        }
+//        explicit MatchingEngine(MatchReporter<Logger> reporter) :
+//                m_reporter{std::move(reporter)} {
+//        }
+
+        explicit MatchingEngine() = default;
 
         std::optional<Data::Order> FindOrder(uint64_t id) {
-            auto it = m_orders.find(id); 
+            auto it = m_orders.find(id);
             if (it == m_orders.end()) {
                 return std::nullopt;
             }
 
             return it->second;
-        }
-        
-        void CreateReport(Data::Order order, Data::FillReason reason) {
-            m_reporter.ReportOrderFill(order, order, reason);
         }
 
         Data::Order RemoveOrder(uint64_t id) {
@@ -68,8 +66,8 @@ namespace TradingEngine::Matching {
             m_orders[order.Id] = order;
             ob.AddOrder(m_orders.at(order.Id));
         }
-        
-        void AddOrder(Data::Order &order, std::list<Data::OrderAction>& actions) {
+
+        void AddOrder(Data::Order &order, std::vector<Data::OrderAction>& actions) {
             CORE_TRACE("Received Order: {}", order);
             auto obIt = m_orderBooks.find(order.SymbolId);
             if (obIt == m_orderBooks.end()) {
@@ -129,11 +127,12 @@ namespace TradingEngine::Matching {
         }
 
     private:
-        bool Match(Data::Order &order, Data::OrderBook &book, std::list<Data::OrderAction>& actions) {
+        bool Match(Data::Order &order, Data::OrderBook &book, std::vector<Data::OrderAction>& actions) {
             switch (order.Type) {
-                case Data::OrderType::MARKET: 
+                case Data::OrderType::MARKET:
                     if (!MatchMarket(order, book, actions)) {
-                        m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
+                        actions.emplace_back(Data::Action::CANCELLED, order, std::nullopt, 0);
+//                        m_reporter.ReportOrderFill(order, order, Data::Action::CANCELLED);
                     }
                     return true;
                 case Data::OrderType::LIMIT:
@@ -143,7 +142,8 @@ namespace TradingEngine::Matching {
                     return true;
                 case Data::OrderType::IOC:
                     if (!MatchIOC(order, book, actions)) {
-                        m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
+//                        m_reporter.ReportOrderFill(order, order, Data::Action::CANCELLED);
+                        actions.emplace_back(Data::Action::CANCELLED, order, std::nullopt, 0);
                     }
                     return true;
                 case Data::OrderType::STOP_MARKET:
@@ -159,7 +159,7 @@ namespace TradingEngine::Matching {
             return false;
         }
 
-        void MatchFOK(Data::Order &order, Data::OrderBook &book, std::list<Data::OrderAction>& actions) {
+        void MatchFOK(Data::Order &order, Data::OrderBook &book, std::vector<Data::OrderAction>& actions) {
             if (order.Side == Data::OrderSide::BUY) {
                 MatchFOK(order, book.Asks(), m_greater, actions);
             } else {
@@ -168,7 +168,7 @@ namespace TradingEngine::Matching {
         }
 
         template<template<class> class S, typename Comp>
-        void MatchFOK(Data::Order &order, std::set<Data::Level, S<Data::Level>> const &levels, Comp &compare, std::list<Data::OrderAction>& actions) {
+        void MatchFOK(Data::Order &order, std::set<Data::Level, S<Data::Level>> const &levels, Comp &compare, std::vector<Data::OrderAction>& actions) {
             std::vector<Data::OrderNode* > orderNodes{};
             uint32_t currQ = order.CurrentQuantity;
             for (auto &lvl: levels) {
@@ -186,16 +186,17 @@ namespace TradingEngine::Matching {
 
                 Data::OrderNode *curr = level.Head;
                 while (curr != nullptr) {
-                    Data::Order &o = curr->Order;
+                    Data::Order &obOrder = curr->Order;
                     // Check for self trade
-                    if (o.UserId == order.UserId) {
+                    if (obOrder.UserId == order.UserId) {
                         // TODO: maybe throw or error out
-                        CORE_INFO("ENCOUNTERED SELF TRADE, ABORTING FILL {}\n{}", o, order);
-                        m_reporter.ReportOrderFill(order, order, Data::FillReason::SELF_TRADE);
+                        CORE_INFO("ENCOUNTERED SELF TRADE, ABORTING FILL {}\n{}", obOrder, order);
+                        actions.emplace_back(Data::Action::SELF_TRADE, order, std::nullopt, 0);
+//                        m_reporter.ReportOrderFill(order, order, Data::Action::SELF_TRADE);
                         return;
                     }
 
-                    uint32_t diff = std::min(currQ, o.CurrentQuantity);
+                    uint32_t diff = std::min(currQ, obOrder.CurrentQuantity);
                     currQ -= diff;
                     orderNodes.push_back(curr);
 
@@ -210,48 +211,48 @@ namespace TradingEngine::Matching {
             if (currQ > 0) {
                 // We can't fill, CANCEL!
                 CORE_TRACE("Cant Fill FOK, CANCEL! Leftover: {}", currQ);
-                m_reporter.ReportOrderFill(order, order, Data::FillReason::CANCELLED);
+                actions.emplace_back(Data::Action::CANCELLED, order, std::nullopt, 0);
+//                m_reporter.ReportOrderFill(order, order, Data::Action::CANCELLED);
                 return;
             }
 
             // We can fill, thus match all orders
             for (Data::OrderNode* node : orderNodes) {
-                Data::Order &o = node->Order;
+                Data::Order &obOrder = node->Order;
 
-                uint32_t diff = std::min(order.CurrentQuantity, o.CurrentQuantity);
+                uint32_t diff = std::min(order.CurrentQuantity, obOrder .CurrentQuantity);
                 order.CurrentQuantity -= diff;
 
                 Data::Level* level = nullptr;
                 for (auto &lvl: levels) {
-                    if (lvl.Price == o.Price) {
+                    if (lvl.Price == obOrder.Price) {
                         level = &const_cast<Data::Level &>(lvl);
                         break;
                     }
                 }
                 if (level == nullptr) {
-                    CORE_ERROR("TRYING TO FILL ORDER {} THAT DOESNT HAVE LEVEL WITH PRICE {}", o, o.Price);
+                    CORE_ERROR("TRYING TO FILL ORDER {} THAT DOESNT HAVE LEVEL WITH PRICE {}", obOrder, obOrder.Price);
                     return;
                 }
 
                 level->DecreaseVolume(diff);
-                o.CurrentQuantity -= diff;
+                obOrder.CurrentQuantity -= diff;
 
                 if (order.CurrentQuantity == 0) {
-                    m_reporter.ReportOrderFill(order, o, Data::FillReason::FILLED, diff);
+//                    m_reporter.ReportOrderFill(order, o, Data::Action::FILLED, diff);
+                    actions.emplace_back(Data::Action::FILLED, order, obOrder, 0);
                 }
 
-                if (o.CurrentQuantity == 0) {
-                    m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
+                if (obOrder.CurrentQuantity == 0) {
+//                    m_reporter.ReportOrderFill(o, order, Data::Action::FILLED, diff);
+                    actions.emplace_back(Data::Action::FILLED, obOrder, order, 0);
 //                    level->RemoveOrder(node);
-                    RemoveOrder(o.Id);
-                } else {
-                    m_reporter.UpdateOrder(o, o.CurrentQuantity);
+                    RemoveOrder(obOrder.Id);
                 }
-
             }
         }
 
-        bool MatchMarket(Data::Order &order, Data::OrderBook &book, std::list<Data::OrderAction>& actions) {
+        bool MatchMarket(Data::Order &order, Data::OrderBook &book, std::vector<Data::OrderAction>& actions) {
             // For now, we'll pretend a Market Order is basically an IOC with infinite price
             if (order.Side == Data::OrderSide::BUY) {
                 order.Price = INT64_MAX;
@@ -264,7 +265,7 @@ namespace TradingEngine::Matching {
             }
         }
 
-        bool MatchIOC(Data::Order &order, Data::OrderBook &book, std::list<Data::OrderAction>& actions) {
+        bool MatchIOC(Data::Order &order, Data::OrderBook &book, std::vector<Data::OrderAction>& actions) {
             if (order.Side == Data::OrderSide::BUY) {
                 return MatchIOC(order, book.Asks(), m_greater, actions);
             } else {
@@ -273,7 +274,7 @@ namespace TradingEngine::Matching {
         }
 
         template<typename S, typename Comp>
-        bool MatchIOC(Data::Order &order, S &levels, Comp &compare, std::list<Data::OrderAction>& actions) {
+        bool MatchIOC(Data::Order &order, S &levels, Comp &compare, std::vector<Data::OrderAction>& actions) {
             for (auto &lvl: levels) {
                 auto &level = const_cast<Data::Level &>(lvl);
                 if (compare(level.Price, order.Price)) {
@@ -290,8 +291,8 @@ namespace TradingEngine::Matching {
                     if (obOrder.UserId == order.UserId) {
                         // TODO: maybe throw or error out
                         CORE_INFO("ENCOUNTERED SELF TRADE, ABORTING FILL {}\n{}", obOrder, order);
-                        actions.emplace()
-                        m_reporter.ReportOrderFill(order, order, Data::FillReason::SELF_TRADE);
+                        actions.emplace_back(Data::Action::SELF_TRADE, order, std::nullopt, 0);
+//                        m_reporter.ReportOrderFill(order, order, Data::Action::SELF_TRADE);
                         return true;
                     }
 
@@ -304,16 +305,16 @@ namespace TradingEngine::Matching {
                     obOrder.CurrentQuantity -= diff;
 
                     if (obOrder.CurrentQuantity == 0) {
-                        m_reporter.ReportOrderFill(o, order, Data::FillReason::FILLED, diff);
+                        actions.emplace_back(Data::Action::FILLED, obOrder, order, diff);
+//                        m_reporter.ReportOrderFill(o, order, Data::Action::FILLED, diff);
 //                        level.RemoveOrder(curr);
                         RemoveOrder(obOrder.Id);
-                    } else {
-                        m_reporter.UpdateOrder(o, o.CurrentQuantity);
                     }
                     obNode = next;
 
                     if (order.CurrentQuantity == 0) {
-                        m_reporter.ReportOrderFill(order, o, Data::FillReason::FILLED, diff);
+                        actions.emplace_back(Data::Action::FILLED, order, obOrder, diff);
+//                        m_reporter.ReportOrderFill(order, o, Data::Action::FILLED, diff);
                         return true;
                     }
                 }
@@ -321,7 +322,6 @@ namespace TradingEngine::Matching {
 
             if (order.CurrentQuantity > 0) {
                 CORE_TRACE("Order with id {} could not be filled fully", order.Id);
-                m_reporter.UpdateOrder(order, order.CurrentQuantity);
                 return false;
             }
             return true;

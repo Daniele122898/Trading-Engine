@@ -4,6 +4,8 @@
 
 #include "Broadcaster.h"
 #include "dtos/WebsocketDto.h"
+#include "not_implemented_exception.h"
+#include <exception>
 #include <log.h>
 #include <nlohmann/json.hpp>
 #include <utility>
@@ -53,22 +55,26 @@ namespace TradingEngine {
 
     void
     Broadcaster::ReportOrderFill(const Data::Order &order, const Data::Order &counterOrder,
-                                 Data::FillReason reason, uint32_t diff) {
+                                 Data::Action reason, uint32_t diff) {
         WsData::OpCodes opCode;
         switch (reason) {
-            case Data::FillReason::SELF_TRADE:
+            case Data::Action::SELF_TRADE:
                 opCode = WsData::OpCodes::SELF_TRADE;
                 break;
-            case Data::FillReason::CANCELLED:
+            case Data::Action::CANCELLED:
                 opCode = WsData::OpCodes::CANCELLED;
                 break;
-            case Data::FillReason::FILLED:
+            case Data::Action::FILLED:
                 opCode = WsData::OpCodes::FILLED;
                 break;
-            case Data::FillReason::EXPIRED:
+            case Data::Action::EXPIRED:
                 opCode = WsData::OpCodes::EXPIRED;
                 break;
-        }
+            case Data::Action::CREATION:
+                // TODO: Implement
+                throw Util::not_implemented_exception();
+                break;
+            }
 
         m_reports.emplace(order.Id, counterOrder.Id, order.SymbolId, diff, opCode);
     }

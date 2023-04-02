@@ -37,7 +37,7 @@ namespace TradingEngine {
 
         void ReportOrderCreation(Data::Order const &order);
 
-        void ReportOrderFill(Data::Order const &order, Data::Order const &counterOrder, Data::FillReason reason,
+        void ReportOrderFill(Data::Order const &order, Data::Order const &counterOrder, Data::Action reason,
                              uint32_t diff = 0);
 
         void OnOpen(crow::websocket::connection &conn);

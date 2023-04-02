@@ -12,7 +12,7 @@ class MockReporter {
 public:
     void ReportOrderFill(TradingEngine::Data::Order const & order,
                          TradingEngine::Data::Order const & counterOrder,
-                         TradingEngine::Data::FillReason reason, uint32_t diff = 0) {
+                         TradingEngine::Data::Action reason, uint32_t diff = 0) {
     }
     
     void UpdateOrderQuantity(TradingEngine::Data::Order const & order, uint32_t newQuant) {

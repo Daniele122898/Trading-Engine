@@ -19,7 +19,7 @@ namespace TradingEngine::Db {
             m_database.UpdateOrder(order, newQuant);
         }
 
-        void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::FillReason reason, uint32_t diff = 0) {
+        void ReportOrderFill(Data::Order const & order, Data::Order const & counterOrder, Data::Action reason, uint32_t diff = 0) {
             m_database.AddFill(order, counterOrder, reason);
         }
 
