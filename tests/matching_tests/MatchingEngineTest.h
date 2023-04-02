@@ -11,6 +11,7 @@
 #include <LogOrderReporter.h>
 #include <ThreadedLogReporter.h>
 #include "MockReporter.h"
+#include "order.h"
 
 class MatchingEngineTest : public ::testing::Test {
 protected:
@@ -35,18 +36,15 @@ protected:
             if (i >= 5)
                 order.Side = TradingEngine::Data::OrderSide::SELL;
 
-            m_engine.AddOrder(order);
+            m_engine.AddOrder(order, m_actions);
         }
 
         CORE_INFO(*m_engine.OrderBook(symbol.Id));
     }
 
 
-    TradingEngine::Matching::MatchingEngine<TradingEngine::Matching::ThreadedLogOrderReporter, MockReporter, MockReporter>
-            m_engine{TradingEngine::Matching::MatchReporter(
-            std::make_unique<TradingEngine::Matching::ThreadedLogOrderReporter>(),
-            std::make_unique<MockReporter>(),
-            std::make_shared<MockReporter>())};
+    TradingEngine::Matching::MatchingEngine m_engine{};
+    std::vector<TradingEngine::Data::OrderAction> m_actions;
 
 };
 

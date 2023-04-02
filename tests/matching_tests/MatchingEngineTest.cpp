@@ -26,7 +26,7 @@ TEST_F(MatchingEngineTest, TestIOCBuy) {
             30,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestAsk()->TotalVolume, 5);
 
@@ -49,7 +49,7 @@ TEST_F(MatchingEngineTest, TestIOCBuy) {
             20,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto volAfter = totalVol(asks);
 
     EXPECT_EQ(volBefore, volAfter);
@@ -64,7 +64,7 @@ TEST_F(MatchingEngineTest, TestIOCBuy) {
             50,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     EXPECT_EQ(ob->BestAsk()->Price, 35);
 }
 
@@ -79,7 +79,7 @@ TEST_F(MatchingEngineTest, TestIOCSell) {
             25,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestBid()->TotalVolume, 5);
 
@@ -102,7 +102,7 @@ TEST_F(MatchingEngineTest, TestIOCSell) {
             30,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto volAfter = totalVol(bids);
 
     EXPECT_EQ(volBefore, volAfter);
@@ -117,7 +117,7 @@ TEST_F(MatchingEngineTest, TestIOCSell) {
             10,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     EXPECT_EQ(ob->BestBid()->Price, 20);
 }
 
@@ -132,7 +132,7 @@ TEST_F(MatchingEngineTest, TestFOKBuyFill) {
             30,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestAsk()->TotalVolume, 5);
 }
@@ -148,7 +148,7 @@ TEST_F(MatchingEngineTest, TestFOKBuyFail) {
             30,
             20
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestAsk()->TotalVolume, 10);
 }
@@ -164,7 +164,7 @@ TEST_F(MatchingEngineTest, TestFOKSellFill) {
             25,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestBid()->TotalVolume, 5);
 }
@@ -180,7 +180,7 @@ TEST_F(MatchingEngineTest, TestFOKSellFail) {
             25,
             20
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestBid()->TotalVolume, 10);
 }
@@ -196,7 +196,7 @@ TEST_F(MatchingEngineTest, TestMarketBuy) {
             30,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestAsk()->TotalVolume, 5);
 
@@ -219,7 +219,7 @@ TEST_F(MatchingEngineTest, TestMarketBuy) {
             20,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto volAfter = totalVol(asks);
 
     EXPECT_EQ(volBefore, volAfter+5);
@@ -234,7 +234,7 @@ TEST_F(MatchingEngineTest, TestMarketBuy) {
             50,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     EXPECT_EQ(ob->BestAsk()->Price, 35);
 }
 
@@ -249,7 +249,7 @@ TEST_F(MatchingEngineTest, TestMarketSell) {
             25,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto ob = m_engine.OrderBook(1);
     EXPECT_EQ(ob->BestBid()->TotalVolume, 5);
 
@@ -272,7 +272,7 @@ TEST_F(MatchingEngineTest, TestMarketSell) {
             30,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     auto volAfter = totalVol(bids);
 
     EXPECT_EQ(volBefore, volAfter+5);
@@ -287,6 +287,6 @@ TEST_F(MatchingEngineTest, TestMarketSell) {
             10,
             5
     };
-    m_engine.AddOrder(order);
+    m_engine.AddOrder(order, m_actions);
     EXPECT_EQ(ob->BestBid()->Price, 20);
 }
