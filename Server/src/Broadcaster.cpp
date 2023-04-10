@@ -3,6 +3,7 @@
 //
 
 #include "Broadcaster.h"
+#include "dtos/OrderActionDto.h"
 #include "dtos/WebsocketDto.h"
 #include "not_implemented_exception.h"
 #include <exception>
@@ -49,36 +50,6 @@ namespace TradingEngine {
         return false;
     }
 
-    void Broadcaster::ReportOrderCreation(const Data::Order &order) {
-        m_creations.enqueue({order.Id, order.Price, order.SymbolId, order.InitialQuantity, order.Type, order.Side});
-    }
-
-    void
-    Broadcaster::ReportOrderFill(const Data::Order &order, const Data::Order &counterOrder,
-                                 Data::Action reason, uint32_t diff) {
-        WsData::OpCodes opCode;
-        switch (reason) {
-            case Data::Action::SELF_TRADE:
-                opCode = WsData::OpCodes::SELF_TRADE;
-                break;
-            case Data::Action::CANCELLED:
-                opCode = WsData::OpCodes::CANCELLED;
-                break;
-            case Data::Action::FILLED:
-                opCode = WsData::OpCodes::FILLED;
-                break;
-            case Data::Action::EXPIRED:
-                opCode = WsData::OpCodes::EXPIRED;
-                break;
-            case Data::Action::CREATION:
-                // TODO: Implement
-                throw Util::not_implemented_exception();
-                break;
-            }
-
-        m_reports.emplace(order.Id, counterOrder.Id, order.SymbolId, diff, opCode);
-    }
-
     void Broadcaster::OnOpen(crow::websocket::connection &conn) {
         CORE_TRACE("Opened Websocket connection from {}", conn.get_remote_ip());
         std::lock_guard<std::mutex> _(m_mtx);
@@ -119,106 +90,17 @@ namespace TradingEngine {
             auto json = nlohmann::json::parse(data);
             WsData::Payload request = json.get<WsData::Payload>();
 
-            /*Switch case entries work by jumps. If you jump across a variable initialization then you cannot be sure the stack is in an ok state because you may push something to the stack when you handle a case but if you leave the switch block, you have no way of tracking that additional push you made. And so any variables defined under a case need to be popped off the stack when you leave the switch block, and the only way to do that is to surround it in its own scope*/
             switch (request.opcode) {
                 case WsData::OpCodes::LOGIN: {
-                    CORE_TRACE("WS RECEIVED LOGIN REQUEST");
-                    WsData::Login login = request.payload.get<WsData::Login>();
-                    auto it = m_apiKeys.find(login.apikey);
-                    if (it == m_apiKeys.end()) {
-                        RespondError(conn, WsData::ErrorCodes::UNAUTHORIZED,
-                                     "ApiKey not found, please login Rest route before using the websocket");
-                        return;
-                    }
-                    auto userId = it->second;
-                    std::lock_guard<std::mutex> _(m_mtx);
-                    m_users[userId] = &conn;
-                    conn.userdata((void *) (userId));
-
-                    Ack(conn, WsData::OpCodes::READY);
+                    OnLoginReguest(conn, request);
                     return;
                 }
                 case WsData::OpCodes::SUBSCRIBE: {
-                    CORE_TRACE("WS RECEIVED SUBSCRIBE REQUEST");
-                    if (!IsLoggedIn(conn, m_users))
-                        return;
-
-                    if (IsRatelimited(conn, m_ratelimiter))
-                        return;
-
-                    WsData::SubSymbol sub = request.payload.get<WsData::SubSymbol>();
-                    std::lock_guard<std::mutex> _(m_mtx);
-                    // check if sIds exist
-                    for (auto sid: sub.symbolIds) {
-                        auto sit = m_symbolsToUsers.find(sid);
-                        if (sit != m_symbolsToUsers.end())
-                            continue;
-
-                        RespondError(conn, WsData::ErrorCodes::NOT_FOUND,
-                                     "Symbol with Id " + std::to_string(sid) + " could not be found");
-                        return;
-                    }
-
-                    // Do the subscribing
-                    auto u = m_connections.find(&conn);
-                    for (auto sid: sub.symbolIds) {
-                        if (std::find(u->second.begin(), u->second.end(), sid) != u->second.end())
-                            continue;
-
-                        u->second.emplace_back(sid);
-                        // add to symbols list
-                        auto sit = m_symbolsToUsers.find(sid);
-                        sit->second.emplace_back(&conn);
-                    }
-
-                    Ack(conn, WsData::OpCodes::SUCCESS);
+                    OnSubscribeReguest(conn, request);
                     return;
                 }
                 case WsData::OpCodes::UNSUBSCRIBE: {
-                    CORE_TRACE("WS RECEIVED UNSUBSCRIBE REQUEST");
-                    if (!IsLoggedIn(conn, m_users))
-                        return;
-
-                    if (IsRatelimited(conn, m_ratelimiter))
-                        return;
-
-                    std::lock_guard<std::mutex> _(m_mtx);
-                    WsData::SubSymbol unsub = request.payload.get<WsData::SubSymbol>();
-                    // check if sIds exist
-                    for (auto sid: unsub.symbolIds) {
-                        auto sit = m_symbolsToUsers.find(sid);
-                        if (sit != m_symbolsToUsers.end())
-                            continue;
-
-                        RespondError(conn, WsData::ErrorCodes::NOT_FOUND,
-                                     "Symbol with Id " + std::to_string(sid) + " could not be found");
-                        return;
-                    }
-
-                    // Do the unsubscribing
-                    auto u = m_connections.find(&conn);
-                    for (auto sid: unsub.symbolIds) {
-                        auto uit = std::find(u->second.begin(), u->second.end(), sid);
-                        if (uit == u->second.end())
-                            continue;
-
-                        uint32_t temp = u->second[u->second.size() - 1];
-                        u->second[u->second.size() - 1] = *uit;
-                        *uit = temp;
-                        u->second.pop_back();
-
-                        // remove ws from symbol list
-                        auto sit = m_symbolsToUsers.find(sid);
-                        auto wsconn = std::find(sit->second.begin(), sit->second.end(), &conn);
-
-                        auto wsend = --sit->second.end();
-                        crow::websocket::connection *wstemp = *wsend;
-                        *wsend = *wsconn;
-                        *wsconn = wstemp;
-                        sit->second.pop_back();
-                    }
-
-                    Ack(conn, WsData::OpCodes::SUCCESS);
+                    OnUnSubscribeReguest(conn, request);
                     return;
                 }
                 default: {
@@ -240,44 +122,119 @@ namespace TradingEngine {
         m_symbolsToUsers.emplace(symbolId, std::vector<crow::websocket::connection *>{});
     }
 
-    void Broadcaster::BroadcastingLoop() {
-        while (m_running) {
-            WsData::Creation creation{};
+    void Broadcaster::ReportActions(std::vector<Data::OrderAction>& actions, uint32_t symbolId) {
+        auto wsconn = m_symbolsToUsers.find(symbolId);
+        if (wsconn == m_symbolsToUsers.end()) return;
 
-            if (m_creations.try_dequeue(creation)) {
-                auto wsconns = m_symbolsToUsers.find(creation.symbolId);
-                nlohmann::json jdata = creation;
-                nlohmann::json json = WsData::Payload {WsData::OpCodes::CREATION, std::move(jdata)};
-                std::string resp = json.dump();
-                for (auto conn: wsconns->second) {
-                    conn->send_text(resp);
-                }
-            }
+        auto dto = VectorReturnable<OrderActionDto>(OrderActionDto::ToVector(actions), "events");
+        auto json = dto.toJson();
+        nlohmann::json payload = WsData::Payload {WsData::OpCodes::EVENTS, std::move(json)};
+        std::string resp = payload.dump();
 
-            WsData::ShareReport report{};
-            // block wait for new reports, timed to be killable
-            if (!m_reports.wait_dequeue_timed(report, std::chrono::milliseconds(1)))
+        for(auto* conn : wsconn->second)
+        {
+            conn->send_text(resp);
+        }
+    }
+
+    void Broadcaster::OnLoginReguest(crow::websocket::connection& conn, const WsData::Payload& payload) {
+        CORE_TRACE("WS RECEIVED LOGIN REQUEST");
+        WsData::Login login = payload.payload.get<WsData::Login>();
+        auto it = m_apiKeys.find(login.apikey);
+        if (it == m_apiKeys.end()) {
+            RespondError(conn, WsData::ErrorCodes::UNAUTHORIZED,
+                         "ApiKey not found, please login Rest route before using the websocket");
+            return;
+        }
+        auto userId = it->second;
+        std::lock_guard<std::mutex> _(m_mtx);
+        m_users[userId] = &conn;
+        conn.userdata((void *) (userId));
+
+        Ack(conn, WsData::OpCodes::READY);
+    }
+
+    void Broadcaster::OnSubscribeReguest(crow::websocket::connection& conn, const WsData::Payload& payload) {
+        CORE_TRACE("WS RECEIVED SUBSCRIBE REQUEST");
+        if (!IsLoggedIn(conn, m_users))
+            return;
+
+        if (IsRatelimited(conn, m_ratelimiter))
+            return;
+
+        WsData::SubSymbol sub = payload.payload.get<WsData::SubSymbol>();
+        std::lock_guard<std::mutex> _(m_mtx);
+        // check if sIds exist
+        for (auto sid: sub.symbolIds) {
+            auto sit = m_symbolsToUsers.find(sid);
+            if (sit != m_symbolsToUsers.end())
                 continue;
 
-            auto sid = report.SymbolId;
-            auto wsconns = m_symbolsToUsers.find(sid);
-
-            std::string resp;
-
-            if (report.OpCode == WsData::OpCodes::SELF_TRADE || report.OpCode == WsData::OpCodes::FILLED) {
-                nlohmann::json j = WsData::ShareCounter{report.OrderId, report.CounterId, report.Diff};
-                nlohmann::json json = WsData::Payload {report.OpCode, std::move(j)};
-                resp = json.dump();
-            } else {
-                nlohmann::json j = WsData::Share{report.OrderId};
-                nlohmann::json json = WsData::Payload {report.OpCode, std::move(j)};
-                resp = json.dump();
-            }
-
-            for (auto conn: wsconns->second) {
-                conn->send_text(resp);
-            }
+            RespondError(conn, WsData::ErrorCodes::NOT_FOUND,
+                         "Symbol with Id " + std::to_string(sid) + " could not be found");
+            return;
         }
+
+        // Do the subscribing
+        auto u = m_connections.find(&conn);
+        for (auto sid: sub.symbolIds) {
+            if (std::find(u->second.begin(), u->second.end(), sid) != u->second.end())
+                continue;
+
+            u->second.emplace_back(sid);
+            // add to symbols list
+            auto sit = m_symbolsToUsers.find(sid);
+            sit->second.emplace_back(&conn);
+        }
+
+        Ack(conn, WsData::OpCodes::SUCCESS);
+    }
+
+    void Broadcaster::OnUnSubscribeReguest(crow::websocket::connection& conn, const WsData::Payload& payload) {
+        CORE_TRACE("WS RECEIVED UNSUBSCRIBE REQUEST");
+        if (!IsLoggedIn(conn, m_users))
+            return;
+
+        if (IsRatelimited(conn, m_ratelimiter))
+            return;
+
+        std::lock_guard<std::mutex> _(m_mtx);
+        WsData::SubSymbol unsub = payload.payload.get<WsData::SubSymbol>();
+        // check if sIds exist
+        for (auto sid: unsub.symbolIds) {
+            auto sit = m_symbolsToUsers.find(sid);
+            if (sit != m_symbolsToUsers.end())
+                continue;
+
+            RespondError(conn, WsData::ErrorCodes::NOT_FOUND,
+                         "Symbol with Id " + std::to_string(sid) + " could not be found");
+            return;
+        }
+
+        // Do the unsubscribing
+        auto u = m_connections.find(&conn);
+        for (auto sid: unsub.symbolIds) {
+            auto uit = std::find(u->second.begin(), u->second.end(), sid);
+            if (uit == u->second.end())
+                continue;
+
+            uint32_t temp = u->second[u->second.size() - 1];
+            u->second[u->second.size() - 1] = *uit;
+            *uit = temp;
+            u->second.pop_back();
+
+            // remove ws from symbol list
+            auto sit = m_symbolsToUsers.find(sid);
+            auto wsconn = std::find(sit->second.begin(), sit->second.end(), &conn);
+
+            auto wsend = --sit->second.end();
+            crow::websocket::connection *wstemp = *wsend;
+            *wsend = *wsconn;
+            *wsconn = wstemp;
+            sit->second.pop_back();
+        }
+
+        Ack(conn, WsData::OpCodes::SUCCESS);
     }
 
 } // TradingEngine

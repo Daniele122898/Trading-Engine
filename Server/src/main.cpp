@@ -367,6 +367,8 @@ int main() {
                         // FIXME: Better error response
                         return crow::response(crow::status::BAD_REQUEST, "Something happened.");
                     }
+                    // TODO: Jsonifiyng data twice, for broadcast then private. maybe do it once?
+                    broadcaster->ReportActions(actions, order.SymbolId);
 
                     // TODO: Add persistance + dropcopy
 

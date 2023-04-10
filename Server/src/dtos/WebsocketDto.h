@@ -15,11 +15,7 @@ namespace TradingEngine::WsData {
         UNSUBSCRIBE,
         READY,
         SUCCESS,
-        SELF_TRADE,
-        CANCELLED,
-        FILLED,
-        EXPIRED,
-        CREATION,
+        EVENTS,
         ERROR
     };
 
