@@ -16,3 +16,6 @@
 [submodule "external/rwq"]
 	path = external/rwq
 	url = git@github.com:cameron314/readerwriterqueue.git
+[submodule "external/date"]
+	path = external/date
+	url = git@github.com:HowardHinnant/date.git

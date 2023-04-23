@@ -5,8 +5,11 @@
 #ifndef TRADINGENGINE_DB_H
 #define TRADINGENGINE_DB_H
 
+#include <chrono>
+#include <date/date.h>
 #include <log.h>
 #include <cstdint>
+#include <sstream>
 #include <string>
 #include <pqxx/pqxx>
 #include <symbol.h>
@@ -63,7 +66,7 @@ namespace TradingEngine::Db {
                         "lifetime smallint NOT NULL, "
                         "price bigint NOT NULL, "
                         "initialQ integer NOT NULL, "
-                        "finalQ integer NOT NULL, "
+                        "diff integer NOT NULL, "
                         "expiry date NOT NULL, "
                         "creation timestamp NOT NULL, "
                         "filled_at timestamp NOT NULL, "
@@ -76,7 +79,7 @@ namespace TradingEngine::Db {
                         "CREATE OR REPLACE VIEW all_orders AS  "
                         "SELECT * FROM ( "
                         "select id, userId, symbolId, type, side, lifetime, price, "
-                        "initialQ, finalQ as currentQ,  "
+                        "initialQ, diff as currentQ,  "
                         "expiry, creation, filled_at, counter_order_id, counter_user_id, reason, "
                         "true isFill from fills union all  "
                         "select id, userId, symbolId, type, side, lifetime, price, "
@@ -164,11 +167,12 @@ namespace TradingEngine::Db {
         
         uint64_t LargestFillId() {
             pqxx::work txn{m_conn};
-            uint64_t id = txn.query_value<uint64_t>(
-                    "SELECT id from public.fills ORDER BY id DESC LIMIT 1"
-            );
+            pqxx::result r{txn.exec("SELECT id from public.fills ORDER BY id DESC LIMIT 1")};
+            if (r.empty())
+                return 0;
+
             txn.commit();
-            return id;
+            return r[0][0].as<uint64_t>();
         }
 
         uint64_t LastUsedOrderId() {
@@ -178,6 +182,52 @@ namespace TradingEngine::Db {
             );
             txn.commit();
             return lastOrderId;
+        }
+        
+        void ProcessActions(Data::Order& originOrder, std::vector<Data::OrderAction>& actions) {
+            pqxx::work txn{m_conn};
+            auto stream = pqxx::stream_to::table(
+                txn,
+                "public.fills",
+                std::vector<std::string>{"id", "userid", "symbolid", "type", "side", "lifetime", "price",
+                    "initialq", "diff", "expiry", "creation", "filled_at", "counter_order_id", "counter_user_id",
+                    "reason"}
+            );
+
+            for(auto& action : actions)
+            {
+                if (action.reason != Data::Action::FILLED)
+                    continue;
+                if (!action.counterOrder.has_value()) {
+                    CORE_WARN("Counter order not set in action even though its a fill!");
+                    continue;
+                }
+
+                auto tp = std::chrono::system_clock::time_point(action.order.ExpiryMs);
+                auto days = std::chrono::floor<std::chrono::days>(tp);
+                std::chrono::year_month_day ymd{days};
+                std::stringstream date;
+                date << static_cast<int>(ymd.year()) << "/" 
+                    << static_cast<int>(static_cast<unsigned>(ymd.month()))
+                    << "/" << static_cast<int>(static_cast<unsigned>(ymd.day()));
+
+                stream.write_values(action.order.Id, action.order.UserId, action.order.SymbolId,
+                        static_cast<int>(action.order.Type), 
+                        static_cast<int>(action.order.Side),
+                        static_cast<int>(action.order.Lifetime),
+                        action.order.Price,
+                        action.order.InitialQuantity,
+                        action.quantity,
+                        date.str(),
+                        date::format( "%F %T%z", action.order.CreationTp),
+                        date::format( "%F %T%z", std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now())),
+                        action.counterOrder->Id,
+                        action.counterOrder->UserId,
+                        static_cast<int>(action.reason)
+                    );
+            }
+            stream.complete();
+            txn.commit();
         }
 
         uint64_t AddOrder(Data::Order const &order) {
@@ -223,7 +273,7 @@ namespace TradingEngine::Db {
 
             std::stringstream query;
             query << "INSERT INTO public.fills(id, userid, symbolid, type, side, "
-                  << "lifetime, price, initialq, finalq, expiry, creation, "
+                  << "lifetime, price, initialq, diff, expiry, creation, "
                      "filled_at, counter_order_id, counter_user_id, reason) "
                   << "VALUES ("
                   << order.Id << ", "

@@ -326,7 +326,7 @@ int main() {
             });
 
     CROW_ROUTE(app, "/order").methods("POST"_method)(
-            [&engine,  &users, &broadcaster, &ratelimiter, &mtx, &nextOrderId] //&db,
+            [&engine,  &users, &broadcaster, &ratelimiter, &mtx, &nextOrderId, &db]
                     (const crow::request &req) {
                 AUTHENTICATE(req);
                 EMPTY_BODY(req);
@@ -371,6 +371,8 @@ int main() {
                     broadcaster->ReportActions(actions, order.SymbolId);
 
                     // TODO: Add persistance + dropcopy
+                    // TODO: Don't create stream if no action is a fill!!!!!
+                    db.ProcessActions(order, actions);
 
                     // FIXME: Fix this temporary mess
                     return crow::response{VectorReturnable<OrderActionDto>(OrderActionDto::ToVector(actions), "events")};

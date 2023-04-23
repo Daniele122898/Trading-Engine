@@ -2,7 +2,7 @@
 - [x] ME single threaded, blocked,
 - [x] Respond with action immediately
 - [x] Don't actually safe orders (unless order specifies it wants to be safed.)
-- [ ] Drop Copy
+- [ ] Fix all the dependencies on the order table!!!!! like the EOD
 - [ ] Ensure Deletion is propagated
 
 # TODO

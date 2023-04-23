@@ -9,6 +9,7 @@ add_subdirectory(external/gtest)
 add_subdirectory(external/json)
 add_subdirectory(external/libpqxx)
 add_subdirectory(external/rwq)
+add_subdirectory(external/date)
 
 add_subdirectory(internal/data)
 add_subdirectory(internal/util)

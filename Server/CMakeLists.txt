@@ -31,6 +31,7 @@ target_link_libraries(${PROJECT_NAME}
             util
             matching
             nlohmann_json
+            date
             pqxx
             OpenSSL::Crypto
             OpenSSL::SSL

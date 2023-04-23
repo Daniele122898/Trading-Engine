@@ -18,6 +18,7 @@ namespace TradingEngine {
 
             tp += std::chrono::hours(24);
 
+            // FIXME: This is broken since we have no more orders table soon
             auto expiredIds = m_db.GetExpiredOrders();
             if (expiredIds.empty())
                 continue;
