@@ -1,4 +1,5 @@
 cmake-build-debug-wsl/
+cmake*build*/
 .idea/
 out/
 .vs/
