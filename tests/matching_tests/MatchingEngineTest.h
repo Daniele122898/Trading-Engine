@@ -8,7 +8,6 @@
 #include <log.h>
 #include <MatchingEngine.h>
 #include "gtest/gtest.h"
-#include <LogOrderReporter.h>
 #include <ThreadedLogReporter.h>
 #include "MockReporter.h"
 #include "order.h"

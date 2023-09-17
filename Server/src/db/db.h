@@ -41,20 +41,20 @@ namespace TradingEngine::Db {
                         "ticker varchar(6) NOT NULL UNIQUE "
                         ")");
 
-                txn.exec0(
-                        "CREATE TABLE IF NOT EXISTS public.orders ( "
-                        "id bigserial PRIMARY KEY, "
-                        "userId bigint REFERENCES users(id), "
-                        "symbolId integer REFERENCES symbols(id), "
-                        "type smallint NOT NULL, "
-                        "side smallint NOT NULL, "
-                        "lifetime smallint NOT NULL, "
-                        "price bigint NOT NULL, "
-                        "initialQ integer NOT NULL, "
-                        "currentQ integer NOT NULL, "
-                        "expiry date NOT NULL, "
-                        "creation timestamp NOT NULL "
-                        ")");
+//                txn.exec0(
+//                        "CREATE TABLE IF NOT EXISTS public.orders ( "
+//                        "id bigserial PRIMARY KEY, "
+//                        "userId bigint REFERENCES users(id), "
+//                        "symbolId integer REFERENCES symbols(id), "
+//                        "type smallint NOT NULL, "
+//                        "side smallint NOT NULL, "
+//                        "lifetime smallint NOT NULL, "
+//                        "price bigint NOT NULL, "
+//                        "initialQ integer NOT NULL, "
+//                        "currentQ integer NOT NULL, "
+//                        "expiry date NOT NULL, "
+//                        "creation timestamp NOT NULL "
+//                        ")");
 
                 txn.exec0(
                         "CREATE TABLE IF NOT EXISTS public.fills ( "
@@ -100,43 +100,43 @@ namespace TradingEngine::Db {
             }
         }
 
-        std::vector<uint64_t> GetExpiredOrders() {
-            pqxx::work txn{m_conn};
-            pqxx::result r{txn.exec("SELECT id FROM public.orders WHERE "
-                                    "lifetime = 0 OR (lifetime = 1 AND expiry <= CURRENT_DATE)")};
-            std::vector<uint64_t> orderIds{};
-            orderIds.reserve(r.size());
-            for (auto row: r) {
-                orderIds.emplace_back(row[0].as<uint64_t>());
-            }
+//        std::vector<uint64_t> GetExpiredOrders() {
+//            pqxx::work txn{m_conn};
+//            pqxx::result r{txn.exec("SELECT id FROM public.orders WHERE "
+//                                    "lifetime = 0 OR (lifetime = 1 AND expiry <= CURRENT_DATE)")};
+//            std::vector<uint64_t> orderIds{};
+//            orderIds.reserve(r.size());
+//            for (auto row: r) {
+//                orderIds.emplace_back(row[0].as<uint64_t>());
+//            }
+//
+//            txn.commit();
+//            return orderIds;
+//        }
 
-            txn.commit();
-            return orderIds;
-        }
-
-        std::vector<Data::Order> GetOrders() {
-            pqxx::work txn{m_conn};
-            pqxx::result r{txn.exec(
-                    "SELECT id, userid, symbolid, type, side, "
-                    "lifetime, price, initialq, currentq, extract(epoch from expiry) as expiry, "
-                    "round(extract(epoch from creation)) as creation FROM public.orders")};
-            std::vector<Data::Order> orders{};
-            orders.reserve(r.size());
-
-            for (auto row: r) {
-                orders.emplace_back(row[0].as<uint64_t>(), row[1].as<uint64_t>(),
-                                    row[2].as<uint32_t>(),
-                                    static_cast<Data::OrderType>(row[3].as<int>()),
-                                    static_cast<Data::OrderSide>(row[4].as<int>()),
-                                    static_cast<Data::OrderLifetime>(row[5].as<int>()),
-                                    row[6].as<int64_t>(), row[7].as<uint32_t>(),
-                                    row[8].as<uint32_t>(), std::chrono::milliseconds(row[9].as<uint64_t>()),
-                                    std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::seconds{row[10].as<uint64_t>()}});
-            }
-
-            txn.commit();
-            return orders;
-        }
+//        std::vector<Data::Order> GetOrders() {
+//            pqxx::work txn{m_conn};
+//            pqxx::result r{txn.exec(
+//                    "SELECT id, userid, symbolid, type, side, "
+//                    "lifetime, price, initialq, currentq, extract(epoch from expiry) as expiry, "
+//                    "round(extract(epoch from creation)) as creation FROM public.orders")};
+//            std::vector<Data::Order> orders{};
+//            orders.reserve(r.size());
+//
+//            for (auto row: r) {
+//                orders.emplace_back(row[0].as<uint64_t>(), row[1].as<uint64_t>(),
+//                                    row[2].as<uint32_t>(),
+//                                    static_cast<Data::OrderType>(row[3].as<int>()),
+//                                    static_cast<Data::OrderSide>(row[4].as<int>()),
+//                                    static_cast<Data::OrderLifetime>(row[5].as<int>()),
+//                                    row[6].as<int64_t>(), row[7].as<uint32_t>(),
+//                                    row[8].as<uint32_t>(), std::chrono::milliseconds(row[9].as<uint64_t>()),
+//                                    std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>{std::chrono::seconds{row[10].as<uint64_t>()}});
+//            }
+//
+//            txn.commit();
+//            return orders;
+//        }
 
         std::vector<TradingEngine::Data::Symbol> GetSymbols() {
             pqxx::work txn{m_conn};
@@ -230,81 +230,81 @@ namespace TradingEngine::Db {
             txn.commit();
         }
 
-        uint64_t AddOrder(Data::Order const &order) {
-            pqxx::work txn{m_conn};
-            std::stringstream query;
-            query << "INSERT INTO public.orders(userid, symbolid, type, side, "
-                  << "lifetime, price, initialq, currentq, expiry, creation) "
-                  << "VALUES ("
-                  << order.UserId << ", "
-                  << order.SymbolId << ", "
-                  << static_cast<int>(order.Type) << ", "
-                  << static_cast<int>(order.Side) << ", "
-                  << static_cast<int>(order.Lifetime) << ", "
-                  << order.Price << ", "
-                  << order.InitialQuantity << ", "
-                  << order.CurrentQuantity << ", "
-                  << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
-                  << "CURRENT_TIMESTAMP "
-                  << ")";
-            txn.exec0(query.str());
+//        uint64_t AddOrder(Data::Order const &order) {
+//            pqxx::work txn{m_conn};
+//            std::stringstream query;
+//            query << "INSERT INTO public.orders(userid, symbolid, type, side, "
+//                  << "lifetime, price, initialq, currentq, expiry, creation) "
+//                  << "VALUES ("
+//                  << order.UserId << ", "
+//                  << order.SymbolId << ", "
+//                  << static_cast<int>(order.Type) << ", "
+//                  << static_cast<int>(order.Side) << ", "
+//                  << static_cast<int>(order.Lifetime) << ", "
+//                  << order.Price << ", "
+//                  << order.InitialQuantity << ", "
+//                  << order.CurrentQuantity << ", "
+//                  << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
+//                  << "CURRENT_TIMESTAMP "
+//                  << ")";
+//            txn.exec0(query.str());
+//
+//            uint64_t currOrderId = txn.query_value<uint64_t>(
+//                    "SELECT last_value FROM orders_id_seq"
+//            );
+//            txn.commit();
+//
+//            return currOrderId;
+//        }
 
-            uint64_t currOrderId = txn.query_value<uint64_t>(
-                    "SELECT last_value FROM orders_id_seq"
-            );
-            txn.commit();
+//        void UpdateOrder(Data::Order const & order, uint32_t newQuant) {
+//            pqxx::work txn{m_conn};
+//
+//            // if this fails, we'll fail the entire transaction
+//            txn.exec0("UPDATE public.orders SET currentq=" + std::to_string(newQuant) + " WHERE id=" + std::to_string(order.Id));
+//            txn.commit();
+//
+//            return;
+//        }
 
-            return currOrderId;
-        }
-
-        void UpdateOrder(Data::Order const & order, uint32_t newQuant) {
-            pqxx::work txn{m_conn};
-
-            // if this fails, we'll fail the entire transaction
-            txn.exec0("UPDATE public.orders SET currentq=" + std::to_string(newQuant) + " WHERE id=" + std::to_string(order.Id));
-            txn.commit();
-
-            return;
-        }
-
-        void AddFill(Data::Order const &order, Data::Order const &counterOrder, Data::Action reason) {
-            pqxx::work txn{m_conn};
-
-
-            std::stringstream query;
-            query << "INSERT INTO public.fills(id, userid, symbolid, type, side, "
-                  << "lifetime, price, initialq, diff, expiry, creation, "
-                     "filled_at, counter_order_id, counter_user_id, reason) "
-                  << "VALUES ("
-                  << order.Id << ", "
-                  << order.UserId << ", "
-                  << order.SymbolId << ", "
-                  << static_cast<int>(order.Type) << ", "
-                  << static_cast<int>(order.Side) << ", "
-                  << static_cast<int>(order.Lifetime) << ", "
-                  << order.Price << ", "
-                  << order.InitialQuantity << ", "
-                  << order.CurrentQuantity << ", "
-                  << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
-                  // << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << "), "
-                  // TODO: Fix this inefficiency
-                  << "(SELECT creation from public.orders WHERE id = " + std::to_string(order.Id) + "),"
-                  << "CURRENT_TIMESTAMP, ";
-
-            if (reason == Data::Action::FILLED) {
-                query << counterOrder.Id << ", "
-                      << counterOrder.UserId << ", ";
-            } else {
-                query << "NULL , NULL , ";
-            }
-            query << static_cast<int>(reason) << ")";
-            txn.exec0(query.str());
-            
-            // if this fails, we'll fail the entire transaction
-            txn.exec0("DELETE FROM public.orders WHERE Id = " + std::to_string(order.Id));
-            
-            txn.commit();
-        }
+//        void AddFill(Data::Order const &order, Data::Order const &counterOrder, Data::Action reason) {
+//            pqxx::work txn{m_conn};
+//
+//
+//            std::stringstream query;
+//            query << "INSERT INTO public.fills(id, userid, symbolid, type, side, "
+//                  << "lifetime, price, initialq, diff, expiry, creation, "
+//                     "filled_at, counter_order_id, counter_user_id, reason) "
+//                  << "VALUES ("
+//                  << order.Id << ", "
+//                  << order.UserId << ", "
+//                  << order.SymbolId << ", "
+//                  << static_cast<int>(order.Type) << ", "
+//                  << static_cast<int>(order.Side) << ", "
+//                  << static_cast<int>(order.Lifetime) << ", "
+//                  << order.Price << ", "
+//                  << order.InitialQuantity << ", "
+//                  << order.CurrentQuantity << ", "
+//                  << "to_timestamp(" << (order.ExpiryMs.count() / 1000.0) << ")::date, "
+//                  // << "to_timestamp(" << (order.CreationTp.time_since_epoch().count() / 1000.0) << "), "
+//                  // TODO: Fix this inefficiency
+//                  << "(SELECT creation from public.orders WHERE id = " + std::to_string(order.Id) + "),"
+//                  << "CURRENT_TIMESTAMP, ";
+//
+//            if (reason == Data::Action::FILLED) {
+//                query << counterOrder.Id << ", "
+//                      << counterOrder.UserId << ", ";
+//            } else {
+//                query << "NULL , NULL , ";
+//            }
+//            query << static_cast<int>(reason) << ")";
+//            txn.exec0(query.str());
+//
+//            // if this fails, we'll fail the entire transaction
+//            txn.exec0("DELETE FROM public.orders WHERE Id = " + std::to_string(order.Id));
+//
+//            txn.commit();
+//        }
 
         bool TryGetUserId(std::string &apikey, uint64_t &id) {
             pqxx::work txn{m_conn};

@@ -304,23 +304,26 @@ int main() {
 
 
     CROW_ROUTE(app, "/order/<uint>").methods("DELETE"_method)(
-            [&engine, &users, &ratelimiter](const crow::request &req, unsigned int orderId) {
+            [&engine, &users, &ratelimiter, &mtx](const crow::request &req, unsigned int orderId) {
                 AUTHENTICATE(req);
                 RATELIMITED(Util::BUCKET_TYPE::SIMPLE, userId);
 
-                // check if order exists and belongs to us
-                auto order = engine.FindOrder(orderId);
-                if (!order) {
-                    return crow::response(404, "Order Not Found");
-                }
-                if (order->UserId != userId) {
-                    return crow::response(crow::status::FORBIDDEN, "Not your order");
-                }
+                {
+                    std::lock_guard<std::mutex> _(mtx);
+                    // check if order exists and belongs to us
+                    auto order = engine.FindOrder(orderId);
+                    if (!order) {
+                        return crow::response(404, "Order Not Found");
+                    }
+                    if (order->UserId != userId) {
+                        return crow::response(crow::status::FORBIDDEN, "Not your order");
+                    }
 
-                // remove order
-                engine.RemoveOrder(orderId);
-                // FIXME: Make sure this is re-implemented
-//                engine.CreateReport(order.value(), Data::Action::CANCELLED);
+                    // remove order
+                    engine.RemoveOrder(orderId);
+                    // FIXME: Make sure this is re-implemented
+    //                engine.CreateReport(order.value(), Data::Action::CANCELLED);
+                }
 
                 return crow::response{crow::status::OK};
             });
@@ -365,7 +368,7 @@ int main() {
 
                     if (actions.empty()) {
                         // FIXME: Better error response
-                        return crow::response(crow::status::BAD_REQUEST, "Something happened.");
+                        return crow::response(crow::status::BAD_REQUEST, "Failed to create order");
                     }
                     // TODO: Jsonifiyng data twice, for broadcast then private. maybe do it once?
                     broadcaster->ReportActions(actions, order.SymbolId);
