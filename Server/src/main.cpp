@@ -84,18 +84,17 @@ int main() {
 //                        std::make_unique<Db::FillPersistence>(db),
 //                                broadcaster)};
 
-    Matching::MatchingEngine engine{};
+    Data::OrderManager orderManager{};
+    Matching::MatchingEngine engine{orderManager};
 
     auto symbols = db.GetSymbols();
     for (auto &symb: symbols) {
         CORE_TRACE("Adding symbol {} {}", symb.Id, symb.Ticker);
-        engine.AddSymbol(symb);
+        orderManager.AddSymbol(symb);
         broadcaster->AddSymbol(symb.Id);
     }
 
-    auto eodhandler = EODHandler(dbConnectionString, [&engine](uint64_t orderId) {
-        return engine.RemoveOrder(orderId);
-    });
+    auto eodhandler = EODHandler(dbConnectionString, orderManager);
 
     uint64_t nextOrderId = db.LargestFillId() + 1;
 
@@ -227,7 +226,7 @@ int main() {
     });
 
     // TODO LIMIT TO ONLY ADMINS
-    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&engine, &db, &users, &broadcaster](const crow::request &req) {
+    CROW_ROUTE(app, "/symbol").methods("POST"_method)([&orderManager, &db, &users, &broadcaster](const crow::request &req) {
         AUTHENTICATE(req);
         EMPTY_BODY(req);
 
@@ -242,7 +241,7 @@ int main() {
             CORE_TRACE("Adding symbol {} with id {}", json["ticker"], id);
 
             Data::Symbol symbol{id, json["ticker"]};
-            engine.AddSymbol(symbol);
+            orderManager.AddSymbol(symbol);
             broadcaster->AddSymbol(symbol.Id);
         }
         catch (pqxx::sql_error const &e) {
@@ -262,11 +261,11 @@ int main() {
         return crow::response{crow::status::OK};
     });
 
-    CROW_ROUTE(app, "/symbols").methods("GET"_method)([&engine, &users, &ratelimiter](const crow::request &req) {
+    CROW_ROUTE(app, "/symbols").methods("GET"_method)([&orderManager, &users, &ratelimiter](const crow::request &req) {
         AUTHENTICATE(req);
         RATELIMITED(Util::BUCKET_TYPE::LISTS, userId);
 
-        auto symbols = engine.Symbols();
+        auto symbols = orderManager.GetSymbols();
         std::vector<SymbolDto> symbolsDto{};
         symbolsDto.reserve(symbols.size());
 
@@ -279,11 +278,11 @@ int main() {
     });
 
     CROW_ROUTE(app, "/symbol/<uint>").methods("GET"_method)(
-            [&engine, &users, &ratelimiter](const crow::request &req, unsigned int symbolId) {
+            [&orderManager, &users, &ratelimiter](const crow::request &req, unsigned int symbolId) {
                 AUTHENTICATE(req);
                 RATELIMITED(Util::BUCKET_TYPE::SIMPLE, userId);
 
-                auto symbol = engine.Symbol(symbolId);
+                auto symbol = orderManager.GetSymbol(symbolId);
                 if (symbol == nullptr) {
                     return crow::response{404};
                 }
@@ -291,11 +290,11 @@ int main() {
             });
 
     CROW_ROUTE(app, "/orderbook/<uint>").methods("GET"_method)(
-            [&engine, &users, &ratelimiter](const crow::request &req, unsigned int orderBookId) {
+            [&orderManager, &users, &ratelimiter](const crow::request &req, unsigned int orderBookId) {
                 AUTHENTICATE(req);
                 RATELIMITED(Util::BUCKET_TYPE::ORDER_BOOK, userId);
 
-                Data::OrderBook const *book = engine.OrderBook(orderBookId);
+                Data::OrderBook const *book = orderManager.GetOrderBook(orderBookId);
                 if (book == nullptr) {
                     return crow::response{404};
                 }
@@ -304,14 +303,14 @@ int main() {
 
 
     CROW_ROUTE(app, "/order/<uint>").methods("DELETE"_method)(
-            [&engine, &users, &ratelimiter, &mtx](const crow::request &req, unsigned int orderId) {
+            [&orderManager, &users, &ratelimiter, &mtx](const crow::request &req, unsigned int orderId) {
                 AUTHENTICATE(req);
                 RATELIMITED(Util::BUCKET_TYPE::SIMPLE, userId);
 
                 {
                     std::lock_guard<std::mutex> _(mtx);
                     // check if order exists and belongs to us
-                    auto order = engine.FindOrder(orderId);
+                    auto order = orderManager.FindOrder(orderId);
                     if (!order) {
                         return crow::response(404, "Order Not Found");
                     }
@@ -320,7 +319,7 @@ int main() {
                     }
 
                     // remove order
-                    engine.RemoveOrder(orderId);
+                    orderManager.RemoveOrder(orderId);
                     // FIXME: Make sure this is re-implemented
     //                engine.CreateReport(order.value(), Data::Action::CANCELLED);
                 }

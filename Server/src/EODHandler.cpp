@@ -24,8 +24,8 @@ namespace TradingEngine {
                 continue;
 
             for (uint64_t orderId : expiredIds) {
-                auto order = m_removeOrderFunc(orderId);
-                m_db.AddFill(order, order, Data::Action::EXPIRED);
+                auto order = m_orderManager.RemoveOrder(orderId);
+//                m_db.AddFill(order, order, Data::Action::EXPIRED);
                 CORE_TRACE("EXPIRED ORDER {}", order.Id);
             }
 

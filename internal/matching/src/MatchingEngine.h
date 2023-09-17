@@ -25,7 +25,9 @@ namespace TradingEngine::Matching {
     class MatchingEngine {
     public:
 
-        explicit MatchingEngine() = default;
+        explicit MatchingEngine(Data::OrderManager& orderManager) :
+        m_orderManager{orderManager} {};
+
         MatchingEngine(const MatchingEngine &engine) = delete;
         // MatchingEngine(const MatchingEngine &&engine) = delete;
         MatchingEngine operator=(const MatchingEngine &engine) = delete;

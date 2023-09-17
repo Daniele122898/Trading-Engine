@@ -12,13 +12,14 @@
 #include <ctime>
 #include "db/db.h"
 #include "tm.h"
+#include "OrderManager.h"
 
 namespace TradingEngine {
 
     class EODHandler {
     public:
-        explicit EODHandler(std::string const & dbConnectionString, std::function<Data::Order(uint64_t)> removeOrderFunc) :
-                m_db(dbConnectionString), m_removeOrderFunc{std::move(removeOrderFunc)} {
+        explicit EODHandler(std::string const & dbConnectionString, Data::OrderManager& orderManager) :
+                m_db(dbConnectionString), m_orderManager{orderManager} {
 
             tp = Util::GetPointInToday(23, 05, 0);
 
@@ -52,7 +53,7 @@ namespace TradingEngine {
         bool m_running = true;
 
         Db::Database m_db;
-        std::function<Data::Order(uint64_t)> m_removeOrderFunc;
+        Data::OrderManager& m_orderManager;
     };
 
 } // TradingEngine
