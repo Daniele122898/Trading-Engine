@@ -17,7 +17,7 @@ namespace TradingEngine::Data {
             return LevelSide::UNKNOWN;
         }
 
-        return Head->Order.Side == OrderSide::BUY ? LevelSide::BID : LevelSide::ASK;
+        return Head->mOrder.Side == OrderSide::BUY ? LevelSide::BID : LevelSide::ASK;
     }
 
     void Level::AddOrder(OrderNode *order) {
@@ -25,31 +25,31 @@ namespace TradingEngine::Data {
             Head = order;
             Tail = order;
         } else {
-            Tail->Next = order;
-            order->Prev = Tail;
+            Tail->mNext = order;
+            order->mPrev = Tail;
             Tail = order;
         }
 
         ++Orders;
-        TotalVolume += order->Order.CurrentQuantity;
+        TotalVolume += order->mOrder.CurrentQuantity;
 
-        m_orderMappings[order->Order.Id] = order;
+        m_orderMappings[order->mOrder.Id] = order;
     }
 
     void Level::RemoveOrder(OrderNode *order) {
         if (order == Head)
-            Head = order->Next;
+            Head = order->mNext;
         if (order == Tail)
-            Tail = order->Prev;
-        if (order->Prev != nullptr)
-            order->Prev->Next = order->Next;
-        if (order->Next != nullptr)
-            order->Next->Prev = order->Prev;
+            Tail = order->mPrev;
+        if (order->mPrev != nullptr)
+            order->mPrev->mNext = order->mNext;
+        if (order->mNext != nullptr)
+            order->mNext->mPrev = order->mPrev;
 
         --Orders;
-        TotalVolume -= order->Order.CurrentQuantity;
+        TotalVolume -= order->mOrder.CurrentQuantity;
 
-        m_orderMappings.erase(order->Order.Id);
+        m_orderMappings.erase(order->mOrder.Id);
         delete order;
     }
 

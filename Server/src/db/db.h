@@ -75,18 +75,18 @@ namespace TradingEngine::Db {
                         "reason smallint NOT NULL "
                         ")");
 
-                txn.exec0(
-                        "CREATE OR REPLACE VIEW all_orders AS  "
-                        "SELECT * FROM ( "
-                        "select id, userId, symbolId, type, side, lifetime, price, "
-                        "initialQ, diff as currentQ,  "
-                        "expiry, creation, filled_at, counter_order_id, counter_user_id, reason, "
-                        "true isFill from fills union all  "
-                        "select id, userId, symbolId, type, side, lifetime, price, "
-                        "initialQ, currentQ,  "
-                        "expiry, creation, NULL as filled_at, NULL as counter_order_id, "
-                        "NULL as counter_user_id, NULL as reason, false isFill from orders) c"
-                );
+//                txn.exec0(
+//                        "CREATE OR REPLACE VIEW all_orders AS  "
+//                        "SELECT * FROM ( "
+//                        "select id, userId, symbolId, type, side, lifetime, price, "
+//                        "initialQ, diff as currentQ,  "
+//                        "expiry, creation, filled_at, counter_order_id, counter_user_id, reason, "
+//                        "true isFill from fills union all  "
+//                        "select id, userId, symbolId, type, side, lifetime, price, "
+//                        "initialQ, currentQ,  "
+//                        "expiry, creation, NULL as filled_at, NULL as counter_order_id, "
+//                        "NULL as counter_user_id, NULL as reason, false isFill from orders) c"
+//                );
 
                 txn.commit();
 

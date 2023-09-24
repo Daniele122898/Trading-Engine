@@ -35,7 +35,7 @@ public:
         vectorizeLevels(asks, askVec);
 
         auto json = nlohmann::json{
-                {"symbol", SymbolDto{m_orderBook->Symbol()}.toJson()},
+                {"symbol", SymbolDto{m_orderBook->GetSymbol()}.toJson()},
                 VectorReturnable{bidVec, "bids"}.toFlattenJson(),
                 VectorReturnable{askVec, "asks"}.toFlattenJson()
         };
@@ -51,8 +51,8 @@ private:
         for (auto& level : levels) {
             TradingEngine::Data::OrderNode *curr = level.Head;
             while (curr != nullptr) {
-                vec.emplace_back(curr->Order);
-                curr = curr->Next;
+                vec.emplace_back(curr->mOrder);
+                curr = curr->mNext;
             }
         }
 

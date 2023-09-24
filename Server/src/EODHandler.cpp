@@ -7,7 +7,7 @@
 namespace TradingEngine {
 
     void EODHandler::HandlerLoop() {
-        while (m_running) {
+        while (mRunning) {
 
             auto now = std::chrono::system_clock::now();
 
@@ -18,17 +18,7 @@ namespace TradingEngine {
 
             tp += std::chrono::hours(24);
 
-            // FIXME: This is broken since we have no more orders table soon
-            auto expiredIds = m_db.GetExpiredOrders();
-            if (expiredIds.empty())
-                continue;
-
-            for (uint64_t orderId : expiredIds) {
-                auto order = m_orderManager.RemoveOrder(orderId);
-//                m_db.AddFill(order, order, Data::Action::EXPIRED);
-                CORE_TRACE("EXPIRED ORDER {}", order.Id);
-            }
-
+            auto orders = mOrderManager.RemoveExpiredOrders(now);
         }
     }
 } // TradingEngine

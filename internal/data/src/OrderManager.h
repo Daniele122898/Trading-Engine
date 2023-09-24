@@ -23,13 +23,14 @@ namespace TradingEngine::Data {
         Data::OrderBook *GetOrderBook(uint32_t symbolId);
         std::vector<Data::Symbol> GetSymbols();
         Data::Symbol const *GetSymbol(uint32_t id);
+        std::vector<Data::Order> RemoveExpiredOrders(std::chrono::system_clock::time_point now);
 
     private:
 
-        std::unordered_map<uint32_t, Data::Symbol> m_symbols{};
+        std::unordered_map<uint32_t, Data::Symbol> mSymbols{};
 
-        std::unordered_map<uint32_t, Data::OrderBook> m_orderBooks{};
-        std::unordered_map<uint64_t, Data::Order> m_orders{};
+        std::unordered_map<uint32_t, Data::OrderBook> mOrderBooks{};
+        std::unordered_map<uint64_t, Data::Order> mOrders{};
     };
 
 }

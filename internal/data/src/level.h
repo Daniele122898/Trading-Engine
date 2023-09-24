@@ -29,7 +29,7 @@ namespace TradingEngine::Data {
         explicit Level(int64_t price) : Price{price}, Orders{0}, TotalVolume{0} {}
 
         Level(int64_t price, OrderNode *head) :
-                Price{price}, Orders{1}, TotalVolume{head->Order.CurrentQuantity} {
+                Price{price}, Orders{1}, TotalVolume{head->mOrder.CurrentQuantity} {
             AddOrder(head);
         }
 
@@ -69,10 +69,11 @@ namespace TradingEngine::Data {
             return Price <=> rhs.Price;
         }
 
-        Level(const Level& node) = delete;
-        Level(Level&& node) = delete;
-        Level operator=(const Level& node) = delete;
-        Level operator=(Level&& node) = delete;
+        // FIXME: This should not be copyable, fix this shit
+//        Level(const Level& node) = delete;
+//        Level(Level&& node) = delete;
+//        Level operator=(const Level& node) = delete;
+//        Level operator=(Level&& node) = delete;
 
     private:
         std::unordered_map<uint64_t, OrderNode*> m_orderMappings;

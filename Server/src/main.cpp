@@ -16,10 +16,8 @@
 #include "dtos/SymbolDto.h"
 #include "dtos/VectorReturnable.h"
 #include "dtos/OrderBookDto.h"
-#include "dtos/OrderActionDto.h"
 
 #include "db/db.h"
-#include "db/fill_persistence.h"
 #include "Broadcaster.h"
 #include "Ratelimiter.h"
 #include "EODHandler.h"

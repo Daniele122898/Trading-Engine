@@ -19,21 +19,21 @@ namespace TradingEngine {
     class EODHandler {
     public:
         explicit EODHandler(std::string const & dbConnectionString, Data::OrderManager& orderManager) :
-                m_db(dbConnectionString), m_orderManager{orderManager} {
+                mDb(dbConnectionString), mOrderManager{orderManager} {
 
             tp = Util::GetPointInToday(23, 05, 0);
 
-            m_thread = std::thread([this]() {
+            mThread = std::thread([this]() {
                 HandlerLoop();
             });
         }
 
         ~EODHandler() {
-            m_running = false;
+            mRunning = false;
             // wait for thread to shut down
             CORE_TRACE("Waiting for EOD thread to exit");
-            if (m_thread.joinable())
-                m_thread.join();
+            if (mThread.joinable())
+                mThread.join();
             CORE_TRACE("Killed EOD thread");
         }
 
@@ -49,11 +49,11 @@ namespace TradingEngine {
         void HandlerLoop();
 
         std::chrono::system_clock::time_point tp;
-        std::thread m_thread;
-        bool m_running = true;
+        std::thread mThread;
+        bool mRunning = true;
 
-        Db::Database m_db;
-        Data::OrderManager& m_orderManager;
+        Db::Database mDb;
+        Data::OrderManager& mOrderManager;
     };
 
 } // TradingEngine

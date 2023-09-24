@@ -26,7 +26,7 @@ namespace TradingEngine::Matching {
 
             Data::OrderNode *curr = level.Head;
             while (curr != nullptr) {
-                Data::Order &obOrder = curr->Order;
+                Data::Order &obOrder = curr->mOrder;
                 // Check for self trade
                 if (obOrder.UserId == order.UserId) {
                     // TODO: maybe throw or error out
@@ -43,7 +43,7 @@ namespace TradingEngine::Matching {
                 if (currQ == 0)
                     break;
 
-                curr = curr->Next;
+                curr = curr->mNext;
             }
         }
 
@@ -58,7 +58,7 @@ namespace TradingEngine::Matching {
 
         // We can fill, thus match all orders
         for (Data::OrderNode *node: orderNodes) {
-            Data::Order &obOrder = node->Order;
+            Data::Order &obOrder = node->mOrder;
 
             uint32_t diff = std::min(order.CurrentQuantity, obOrder.CurrentQuantity);
             order.CurrentQuantity -= diff;
@@ -105,7 +105,7 @@ namespace TradingEngine::Matching {
             }
             Data::OrderNode *obNode = level.Head;;
             while (obNode != nullptr) {
-                Data::Order &obOrder = obNode->Order;
+                Data::Order &obOrder = obNode->mOrder;
                 // Check for self trade
                 if (obOrder.UserId == order.UserId) {
                     // TODO: maybe throw or error out
@@ -118,7 +118,7 @@ namespace TradingEngine::Matching {
                 uint32_t diff = std::min(order.CurrentQuantity, obOrder.CurrentQuantity);
                 order.CurrentQuantity -= diff;
 
-                Data::OrderNode *next = obNode->Next;
+                Data::OrderNode *next = obNode->mNext;
 
                 level.DecreaseVolume(diff);
                 obOrder.CurrentQuantity -= diff;

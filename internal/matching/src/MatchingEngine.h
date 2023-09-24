@@ -48,7 +48,7 @@ namespace TradingEngine::Matching {
         template<typename S, typename Comp>
         bool MatchIOC(Data::Order &order, S &levels, Comp &compare, std::vector<Data::OrderAction>& actions);
 
-        Data::OrderManager m_orderManager;
+        Data::OrderManager& m_orderManager;
 
         std::greater<int64_t> m_greater{};
         std::less<int64_t> m_less{};
