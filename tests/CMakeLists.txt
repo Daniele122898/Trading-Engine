@@ -16,11 +16,10 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fdiagnostics-show-template-tree)
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../internal/matching/src)
 target_link_libraries(${PROJECT_NAME}
         PUBLIC
         data
         util
         gtest
-        readerwriterqueue
+        matching
         )

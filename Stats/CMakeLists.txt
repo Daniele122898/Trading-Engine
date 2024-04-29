@@ -22,7 +22,6 @@ endif()
 target_include_directories(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/../external/crow/include
-        ${CMAKE_CURRENT_LIST_DIR}/../internal/matching/src
         )
 
 target_link_libraries(${PROJECT_NAME}
@@ -31,7 +30,7 @@ target_link_libraries(${PROJECT_NAME}
             data
             util
             nlohmann_json
-            readerwriterqueue
+            matching
             pqxx
             OpenSSL::Crypto
             OpenSSL::SSL

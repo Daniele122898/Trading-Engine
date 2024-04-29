@@ -20,8 +20,6 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-deprecated-declarations -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -Wno-unused-but-set-variable -fdiagnostics-show-template-tree)
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../internal/matching/src)
-
 target_include_directories(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/../external/crow/include
@@ -32,8 +30,7 @@ target_link_libraries(${PROJECT_NAME}
             Threads::Threads
             data
             util
-            # matching
-            readerwriterqueue
+            matching
             nlohmann_json
             date
             pqxx
