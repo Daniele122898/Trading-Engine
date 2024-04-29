@@ -16,12 +16,13 @@ find_package(OpenSSL REQUIRED)
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /wd4201)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fdiagnostics-show-template-tree)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wno-deprecated-declarations -Wextra -Werror -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -fdiagnostics-show-template-tree)
 endif()
 
 target_include_directories(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/../external/crow/include
+        ${CMAKE_CURRENT_LIST_DIR}/../internal/matching/src
         )
 
 target_link_libraries(${PROJECT_NAME}
@@ -29,8 +30,8 @@ target_link_libraries(${PROJECT_NAME}
             Threads::Threads
             data
             util
-            matching
             nlohmann_json
+            readerwriterqueue
             pqxx
             OpenSSL::Crypto
             OpenSSL::SSL
