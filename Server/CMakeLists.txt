@@ -12,12 +12,15 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(PostgreSQL REQUIRED)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /wd4201)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -Wno-unused-but-set-variable -fdiagnostics-show-template-tree)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-deprecated-declarations -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -Wno-unused-but-set-variable -fdiagnostics-show-template-tree)
 endif()
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../internal/matching/src)
 
 target_include_directories(${PROJECT_NAME}
         PRIVATE
@@ -29,7 +32,8 @@ target_link_libraries(${PROJECT_NAME}
             Threads::Threads
             data
             util
-            matching
+            # matching
+            readerwriterqueue
             nlohmann_json
             pqxx
             OpenSSL::Crypto

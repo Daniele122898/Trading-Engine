@@ -1,3 +1,3 @@
 #!/bin/bash
 
-cmake --build "${0%/*}/../cmake-build-debug-wsl" --target Server -j 6
+cmake --build "${0%/*}/../build" --target Server -j 6
